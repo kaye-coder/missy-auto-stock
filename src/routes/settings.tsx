@@ -25,8 +25,13 @@ export const Route = createFileRoute("/settings")({
   component: SettingsPage,
 });
 
+const RESET_PASSWORD = "master2019!key";
+
 function SettingsPage() {
   const [s, setS] = useState<CheckoutSettings>(DEFAULT_SETTINGS);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetPwd, setResetPwd] = useState("");
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => { setS(loadSettings()); }, []);
 
