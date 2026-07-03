@@ -42,9 +42,7 @@ function LoginPage() {
     <div className="flex min-h-[80vh] items-center justify-center px-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="space-y-3 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-accent text-accent-foreground">
-            <Sparkles className="h-6 w-6" />
-          </div>
+          <img src={missyLogo.url} alt="Missy logo" className="mx-auto h-12 w-12 object-contain" />
           <div>
             <CardTitle className="text-2xl">Missy Shop Console</CardTitle>
             <CardDescription>Sign in to manage the shop</CardDescription>
