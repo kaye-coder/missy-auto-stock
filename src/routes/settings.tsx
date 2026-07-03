@@ -8,13 +8,17 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Plus, Save, RotateCcw } from "lucide-react";
+import { Trash2, Plus, Save, RotateCcw, AlertTriangle } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import {
   loadSettings, saveSettings, DEFAULT_SETTINGS,
   type CheckoutSettings, type DiscountRule,
 } from "@/lib/settings";
 import { currency } from "@/lib/format";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings — Missy" }] }),
