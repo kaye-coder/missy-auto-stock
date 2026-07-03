@@ -79,22 +79,16 @@ function SettingsPage() {
     setResetting(true);
     try {
       // Order matters: children before parents to satisfy FKs.
-      const steps: Array<[string, Promise<{ error: unknown }>]> = [
-        ["journal_lines", supabase.from("journal_lines").delete().not("id", "is", null)],
-        ["journal_entries", supabase.from("journal_entries").delete().not("id", "is", null)],
-        ["sale_items", supabase.from("sale_items").delete().not("id", "is", null)],
-        ["sales", supabase.from("sales").delete().not("id", "is", null)],
-        ["purchase_items", supabase.from("purchase_items").delete().not("id", "is", null)],
-        ["purchases", supabase.from("purchases").delete().not("id", "is", null)],
-        ["expenses", supabase.from("expenses").delete().not("id", "is", null)],
-        ["products", supabase.from("products").delete().not("id", "is", null)],
-        ["customers", supabase.from("customers").delete().not("id", "is", null)],
-        ["suppliers", supabase.from("suppliers").delete().not("id", "is", null)],
-        ["categories", supabase.from("categories").delete().not("id", "is", null)],
-      ];
-      for (const [name, p] of steps) {
-        const { error } = await p;
-        if (error) throw new Error(`${name}: ${(error as { message?: string }).message ?? "failed"}`);
+      const tables = [
+        "journal_lines", "journal_entries",
+        "sale_items", "sales",
+        "purchase_items", "purchases",
+        "expenses",
+        "products", "customers", "suppliers", "categories",
+      ] as const;
+      for (const name of tables) {
+        const { error } = await supabase.from(name).delete().not("id", "is", null);
+        if (error) throw new Error(`${name}: ${error.message}`);
       }
       toast.success("All data has been reset to zero");
       setResetOpen(false);
