@@ -339,6 +339,54 @@ function SettingsPage() {
           ))}
         </CardContent>
       </Card>
+
+      <Card className="border-destructive/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-destructive">
+            <AlertTriangle className="h-5 w-5" />Danger zone
+          </CardTitle>
+          <CardDescription>
+            Permanently deletes every sale, purchase, expense, journal entry, product,
+            customer, supplier and category. The chart of accounts is preserved. This cannot be undone.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button variant="destructive" onClick={() => setResetOpen(true)}>
+            <Trash2 className="mr-2 h-4 w-4" />Reset all data to zero
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Dialog open={resetOpen} onOpenChange={(o) => { setResetOpen(o); if (!o) setResetPwd(""); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm full data reset</DialogTitle>
+            <DialogDescription>
+              Enter the admin password to permanently delete all transactional data.
+              This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="resetPwd">Password</Label>
+            <Input
+              id="resetPwd"
+              type="password"
+              value={resetPwd}
+              onChange={(e) => setResetPwd(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") wipeAllData(); }}
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResetOpen(false)} disabled={resetting}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={wipeAllData} disabled={resetting || !resetPwd}>
+              {resetting ? "Deleting…" : "Delete everything"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
