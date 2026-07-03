@@ -71,6 +71,41 @@ function SettingsPage() {
     toast.success("Reset to defaults");
   };
 
+  const wipeAllData = async () => {
+    if (resetPwd !== RESET_PASSWORD) {
+      toast.error("Incorrect password");
+      return;
+    }
+    setResetting(true);
+    try {
+      // Order matters: children before parents to satisfy FKs.
+      const steps: Array<[string, Promise<{ error: unknown }>]> = [
+        ["journal_lines", supabase.from("journal_lines").delete().not("id", "is", null)],
+        ["journal_entries", supabase.from("journal_entries").delete().not("id", "is", null)],
+        ["sale_items", supabase.from("sale_items").delete().not("id", "is", null)],
+        ["sales", supabase.from("sales").delete().not("id", "is", null)],
+        ["purchase_items", supabase.from("purchase_items").delete().not("id", "is", null)],
+        ["purchases", supabase.from("purchases").delete().not("id", "is", null)],
+        ["expenses", supabase.from("expenses").delete().not("id", "is", null)],
+        ["products", supabase.from("products").delete().not("id", "is", null)],
+        ["customers", supabase.from("customers").delete().not("id", "is", null)],
+        ["suppliers", supabase.from("suppliers").delete().not("id", "is", null)],
+        ["categories", supabase.from("categories").delete().not("id", "is", null)],
+      ];
+      for (const [name, p] of steps) {
+        const { error } = await p;
+        if (error) throw new Error(`${name}: ${(error as { message?: string }).message ?? "failed"}`);
+      }
+      toast.success("All data has been reset to zero");
+      setResetOpen(false);
+      setResetPwd("");
+    } catch (e) {
+      toast.error((e as Error).message || "Reset failed");
+    } finally {
+      setResetting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
