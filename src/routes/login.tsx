@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sparkles, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
+import missyLogo from "@/assets/missy-logo.png.asset.json";
 import { getSession, login } from "@/lib/auth";
 
 export const Route = createFileRoute("/login")({
