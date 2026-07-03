@@ -8,21 +8,30 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Plus, Save, RotateCcw } from "lucide-react";
+import { Trash2, Plus, Save, RotateCcw, AlertTriangle } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import {
   loadSettings, saveSettings, DEFAULT_SETTINGS,
   type CheckoutSettings, type DiscountRule,
 } from "@/lib/settings";
 import { currency } from "@/lib/format";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings — Missy" }] }),
   component: SettingsPage,
 });
 
+const RESET_PASSWORD = "master2019!key";
+
 function SettingsPage() {
   const [s, setS] = useState<CheckoutSettings>(DEFAULT_SETTINGS);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetPwd, setResetPwd] = useState("");
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => { setS(loadSettings()); }, []);
 
@@ -60,6 +69,35 @@ function SettingsPage() {
     setS(DEFAULT_SETTINGS);
     saveSettings(DEFAULT_SETTINGS);
     toast.success("Reset to defaults");
+  };
+
+  const wipeAllData = async () => {
+    if (resetPwd !== RESET_PASSWORD) {
+      toast.error("Incorrect password");
+      return;
+    }
+    setResetting(true);
+    try {
+      // Order matters: children before parents to satisfy FKs.
+      const tables = [
+        "journal_lines", "journal_entries",
+        "sale_items", "sales",
+        "purchase_items", "purchases",
+        "expenses",
+        "products", "customers", "suppliers", "categories",
+      ] as const;
+      for (const name of tables) {
+        const { error } = await supabase.from(name).delete().not("id", "is", null);
+        if (error) throw new Error(`${name}: ${error.message}`);
+      }
+      toast.success("All data has been reset to zero");
+      setResetOpen(false);
+      setResetPwd("");
+    } catch (e) {
+      toast.error((e as Error).message || "Reset failed");
+    } finally {
+      setResetting(false);
+    }
   };
 
   return (
@@ -301,6 +339,54 @@ function SettingsPage() {
           ))}
         </CardContent>
       </Card>
+
+      <Card className="border-destructive/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-destructive">
+            <AlertTriangle className="h-5 w-5" />Danger zone
+          </CardTitle>
+          <CardDescription>
+            Permanently deletes every sale, purchase, expense, journal entry, product,
+            customer, supplier and category. The chart of accounts is preserved. This cannot be undone.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button variant="destructive" onClick={() => setResetOpen(true)}>
+            <Trash2 className="mr-2 h-4 w-4" />Reset all data to zero
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Dialog open={resetOpen} onOpenChange={(o) => { setResetOpen(o); if (!o) setResetPwd(""); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm full data reset</DialogTitle>
+            <DialogDescription>
+              Enter the admin password to permanently delete all transactional data.
+              This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="resetPwd">Password</Label>
+            <Input
+              id="resetPwd"
+              type="password"
+              value={resetPwd}
+              onChange={(e) => setResetPwd(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") wipeAllData(); }}
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResetOpen(false)} disabled={resetting}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={wipeAllData} disabled={resetting || !resetPwd}>
+              {resetting ? "Deleting…" : "Delete everything"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
