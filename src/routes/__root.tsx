@@ -17,7 +17,8 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
-import { getSession, logout, type Session } from "@/lib/auth";
+import { getSession, logout, refreshSession, type Session } from "@/lib/auth";
+import { useRealtimeInvalidation } from "@/lib/realtime";
 
 function NotFoundComponent() {
   return (
@@ -113,16 +114,16 @@ function RootComponent() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const [session, setSession] = useState<Session | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  useRealtimeInvalidation(queryClient, !!session);
 
   useEffect(() => {
     setSession(getSession());
     setHydrated(true);
+    refreshSession().then(setSession).catch(() => setSession(null));
     const sync = () => setSession(getSession());
     window.addEventListener("missy:auth-changed", sync);
-    window.addEventListener("storage", sync);
     return () => {
       window.removeEventListener("missy:auth-changed", sync);
-      window.removeEventListener("storage", sync);
     };
   }, []);
 
@@ -136,8 +137,10 @@ function RootComponent() {
     }
   }, [hydrated, session, pathname, router]);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await logout();
     router.navigate({ to: "/login" });
   };
 

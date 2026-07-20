@@ -1,6 +1,13 @@
-// Client-side auth + user management (demo only — no real server security).
-// - Multiple users supported, each with a set of module permissions.
-// - Admins can create/edit/delete users. Non-admins are limited to their permissions.
+import {
+  createAppUser,
+  deleteAppUser,
+  getCurrentUser,
+  listAppUsers,
+  loginUser,
+  logoutUser,
+  migrateLegacyAppUsers,
+  updateAppUser,
+} from "./auth.functions";
 
 const SESSION_KEY = "missy.auth.v2";
 const USERS_KEY = "missy.users.v1";
@@ -28,7 +35,7 @@ export interface User {
   id: string;
   username: string;
   fullName: string;
-  password: string; // demo-only plaintext
+  password?: string;
   role: Role;
   permissions: ModuleKey[]; // for admin, effectively all
   active: boolean;
@@ -55,6 +62,8 @@ const DEFAULT_ADMIN: User = {
   createdAt: new Date(0).toISOString(),
 };
 
+type StoredAuth = { token: string; session: Session };
+
 function readUsers(): User[] {
   if (typeof window === "undefined") return [DEFAULT_ADMIN];
   try {
@@ -71,99 +80,95 @@ function readUsers(): User[] {
   }
 }
 
-function writeUsers(users: User[]) {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
+function readLegacyUsers(): User[] {
+  return readUsers().filter((user) => user.username.toLowerCase() !== "admin" && !!user.password);
+}
+
+function getStoredAuth(): StoredAuth | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    return raw ? (JSON.parse(raw) as StoredAuth) : null;
+  } catch {
+    return null;
+  }
+}
+
+function getToken(): string {
+  const token = getStoredAuth()?.token;
+  if (!token) throw new Error("Not signed in");
+  return token;
+}
+
+async function importLegacyUsers() {
+  const legacy = readLegacyUsers();
+  const token = getStoredAuth()?.token;
+  const session = getStoredAuth()?.session;
+  if (!token || session?.role !== "admin" || legacy.length === 0) return;
+  const result = await migrateLegacyAppUsers({ data: { token, users: legacy as Required<User>[] } });
+  if (result.imported > 0) window.dispatchEvent(new CustomEvent("missy:users-changed"));
+}
+
+export async function listUsers(): Promise<User[]> {
+  await importLegacyUsers();
+  return listAppUsers({ data: { token: getToken() } }) as Promise<User[]>;
+}
+
+export async function createUser(input: Omit<User, "id" | "createdAt">): Promise<User> {
+  const user = await createAppUser({ data: { token: getToken(), user: { ...input, password: input.password ?? "" } } });
+  window.dispatchEvent(new CustomEvent("missy:users-changed"));
+  return user as User;
+}
+
+export async function updateUser(id: string, patch: Partial<Omit<User, "id" | "createdAt">>): Promise<User> {
+  const user = await updateAppUser({ data: { token: getToken(), id, user: patch } });
+  const auth = getStoredAuth();
+  if (auth && auth.session.userId === id) {
+    saveAuth({ token: auth.token, session: { ...auth.session, ...user, userId: user.id } });
+  }
+  window.dispatchEvent(new CustomEvent("missy:users-changed"));
+  return user as User;
+}
+
+export async function deleteUser(id: string) {
+  await deleteAppUser({ data: { token: getToken(), id } });
   window.dispatchEvent(new CustomEvent("missy:users-changed"));
 }
 
-export function listUsers(): User[] {
-  return readUsers();
+export async function login(username: string, password: string): Promise<Session> {
+  const auth = await loginUser({ data: { username, password } });
+  saveAuth(auth);
+  await importLegacyUsers();
+  return auth.session;
 }
 
-export function createUser(input: Omit<User, "id" | "createdAt">): User {
-  const users = readUsers();
-  if (users.some((u) => u.username.toLowerCase() === input.username.toLowerCase())) {
-    throw new Error("Username already exists");
-  }
-  const user: User = {
-    ...input,
-    id: crypto.randomUUID(),
-    createdAt: new Date().toISOString(),
-    permissions: input.role === "admin" ? [...MODULES] : input.permissions,
-  };
-  writeUsers([...users, user]);
-  return user;
-}
-
-export function updateUser(id: string, patch: Partial<Omit<User, "id" | "createdAt">>): User {
-  const users = readUsers();
-  const idx = users.findIndex((u) => u.id === id);
-  if (idx === -1) throw new Error("User not found");
-  const merged = { ...users[idx], ...patch } as User;
-  if (merged.role === "admin") merged.permissions = [...MODULES];
-  users[idx] = merged;
-  writeUsers(users);
-  // If updating current session's user, refresh session
-  const session = getSession();
-  if (session && session.userId === id) {
-    saveSession({
-      userId: merged.id,
-      username: merged.username,
-      fullName: merged.fullName,
-      role: merged.role,
-      permissions: merged.permissions,
-      loggedInAt: session.loggedInAt,
-    });
-  }
-  return merged;
-}
-
-export function deleteUser(id: string) {
-  const users = readUsers();
-  const remaining = users.filter((u) => u.id !== id);
-  if (!remaining.some((u) => u.role === "admin" && u.active)) {
-    throw new Error("At least one active admin is required");
-  }
-  writeUsers(remaining);
-}
-
-export function login(username: string, password: string): Session {
-  const users = readUsers();
-  const u = users.find(
-    (u) => u.username.toLowerCase() === username.trim().toLowerCase() && u.password === password,
-  );
-  if (!u) throw new Error("Invalid username or password");
-  if (!u.active) throw new Error("This account is disabled");
-  const session: Session = {
-    userId: u.id,
-    username: u.username,
-    fullName: u.fullName,
-    role: u.role,
-    permissions: u.permissions,
-    loggedInAt: new Date().toISOString(),
-  };
-  saveSession(session);
-  return session;
-}
-
-function saveSession(session: Session) {
-  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+function saveAuth(auth: StoredAuth) {
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify(auth));
   window.dispatchEvent(new CustomEvent("missy:auth-changed"));
 }
 
-export function logout() {
-  localStorage.removeItem(SESSION_KEY);
+export async function refreshSession(): Promise<Session | null> {
+  const token = getStoredAuth()?.token;
+  if (!token) return null;
+  const session = await getCurrentUser({ data: { token } });
+  if (!session) {
+    sessionStorage.removeItem(SESSION_KEY);
+    window.dispatchEvent(new CustomEvent("missy:auth-changed"));
+    return null;
+  }
+  saveAuth({ token, session });
+  return session;
+}
+
+export async function logout() {
+  const token = getStoredAuth()?.token;
+  sessionStorage.removeItem(SESSION_KEY);
+  if (token) await logoutUser({ data: { token } }).catch(() => undefined);
   window.dispatchEvent(new CustomEvent("missy:auth-changed"));
 }
 
 export function getSession(): Session | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    return raw ? (JSON.parse(raw) as Session) : null;
-  } catch {
-    return null;
-  }
+  return getStoredAuth()?.session ?? null;
 }
 
 export function hasPermission(module: ModuleKey): boolean {

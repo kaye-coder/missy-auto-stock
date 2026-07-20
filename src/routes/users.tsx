@@ -71,7 +71,7 @@ function UsersPage() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY);
 
-  const refresh = () => setUsers(listUsers());
+  const refresh = async () => setUsers(await listUsers());
 
   useEffect(() => {
     if (!isAdmin()) {
@@ -79,8 +79,8 @@ function UsersPage() {
       navigate({ to: "/" });
       return;
     }
-    refresh();
-    const h = () => refresh();
+    void refresh();
+    const h = () => void refresh();
     window.addEventListener("missy:users-changed", h);
     return () => window.removeEventListener("missy:users-changed", h);
   }, [navigate]);
@@ -123,7 +123,7 @@ function UsersPage() {
     }));
   };
 
-  const submit = () => {
+  const submit = async () => {
     try {
       if (!form.username.trim()) throw new Error("Username is required");
       if (!form.fullName.trim()) throw new Error("Full name is required");
@@ -137,10 +137,10 @@ function UsersPage() {
           active: form.active,
         };
         if (form.password) patch.password = form.password;
-        updateUser(form.id, patch);
+        await updateUser(form.id, patch);
         toast.success("User updated");
       } else {
-        createUser({
+        await createUser({
           username: form.username.trim(),
           fullName: form.fullName.trim(),
           password: form.password,
@@ -151,18 +151,18 @@ function UsersPage() {
         toast.success("User created");
       }
       setOpen(false);
-      refresh();
+      await refresh();
     } catch (e) {
       toast.error((e as Error).message);
     }
   };
 
-  const remove = (u: User) => {
+  const remove = async (u: User) => {
     if (!confirm(`Delete user "${u.username}"?`)) return;
     try {
-      deleteUser(u.id);
+      await deleteUser(u.id);
       toast.success("User deleted");
-      refresh();
+      await refresh();
     } catch (e) {
       toast.error((e as Error).message);
     }

@@ -25,11 +25,11 @@ function LoginPage() {
     if (getSession()) navigate({ to: search?.redirect ?? "/" });
   }, [navigate, search]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      login(username, password);
+      await login(username, password);
       toast.success("Welcome back");
       navigate({ to: search?.redirect ?? "/" });
     } catch (err) {
