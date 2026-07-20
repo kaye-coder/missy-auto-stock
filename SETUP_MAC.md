@@ -109,13 +109,27 @@ service_role key: eyJhbGciOi...
 
 ## Step 7 — Create your local `.env` file
 
-In the project folder, create a file named `.env` with this content (paste the values from Step 6):
+In the project folder, create a file named `.env` with this content (paste the values from Step 6).
+
+For **only this Mac**, `127.0.0.1` works:
 
 ```env
 VITE_SUPABASE_URL=http://127.0.0.1:54321
 VITE_SUPABASE_PUBLISHABLE_KEY=<paste anon key here>
 VITE_SUPABASE_PROJECT_ID=local
+
+SUPABASE_URL=http://127.0.0.1:54321
+SUPABASE_PUBLISHABLE_KEY=<paste anon key here>
+SUPABASE_SERVICE_ROLE_KEY=<paste service_role key here>
 ```
+
+For **other computers on the same Wi‑Fi/LAN**, replace only the `VITE_SUPABASE_URL` value with your server Mac IP address:
+
+```env
+VITE_SUPABASE_URL=http://YOUR-MAC-IP:54321
+```
+
+Keep `SUPABASE_URL=http://127.0.0.1:54321` on the server Mac because the app backend runs on that same Mac.
 
 Save the file.
 
@@ -136,10 +150,10 @@ This runs every migration file in `supabase/migrations/` and seeds your chart of
 ## Step 9 — Run the app
 
 ```bash
-bun dev
+bun dev --host 0.0.0.0
 ```
 
-Open http://localhost:8080 in your browser. 🎉
+Open http://localhost:8080 on the server Mac, or `http://YOUR-MAC-IP:8080` from another computer. 🎉
 
 ---
 
@@ -152,9 +166,9 @@ Every time you want to use the app:
    ```bash
    cd ~/Desktop/missy
    supabase start
-   bun dev
+    bun dev --host 0.0.0.0
    ```
-3. Open http://localhost:8080
+3. Open http://localhost:8080 on the server Mac, or `http://YOUR-MAC-IP:8080` from another computer.
 
 To stop:
 - Press `Ctrl + C` in the terminal running `bun dev`
