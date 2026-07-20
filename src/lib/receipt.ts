@@ -1,4 +1,4 @@
-import logoAsset from "@/assets/missy-logo.png.asset.json";
+import logoAsset from "@/lib/logo";
 import { currency, dateTime } from "@/lib/format";
 import { loadSettings, type CheckoutSettings } from "@/lib/settings";
 
