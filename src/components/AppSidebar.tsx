@@ -16,7 +16,7 @@ import {
   Scale,
   UserCog,
 } from "lucide-react";
-import missyLogo from "@/assets/missy-logo.png.asset.json";
+import missyLogo from "@/lib/logo";
 import {
   Sidebar,
   SidebarContent,

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Lock } from "lucide-react";
-import missyLogo from "@/assets/missy-logo.png.asset.json";
+import missyLogo from "@/lib/logo";
 import { getSession, login } from "@/lib/auth";
 
 export const Route = createFileRoute("/login")({
