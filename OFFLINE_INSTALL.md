@@ -125,6 +125,11 @@ Get-ChildItem supabase\migrations\*.sql | Sort-Object Name | ForEach-Object {
 
 If any file errors, note which one and see **Troubleshooting** below. A clean run ends with no `ERROR:` lines.
 
+Then apply the offline bootstrap (creates the `product-images` storage bucket that lives outside the migrations folder on cloud Supabase):
+```powershell
+Get-Content supabase\offline_bootstrap.sql -Raw | docker exec -i supabase-db psql -U postgres -d postgres
+```
+
 You can verify by opening Studio at <http://localhost:8000> → Table Editor → you should see `accounts`, `products`, `sales`, `app_users`, etc.
 
 ---
