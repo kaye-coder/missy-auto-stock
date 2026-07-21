@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { getSession, logout, refreshSession, startTabSessionIsolation, type Session } from "@/lib/auth";
 import { useRealtimeInvalidation } from "@/lib/realtime";
+import { logoUrl } from "@/lib/logo";
 
 function NotFoundComponent() {
   return (
