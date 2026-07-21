@@ -76,10 +76,6 @@ function LoginPage() {
               <Lock className="mr-2 h-4 w-4" />
               {submitting ? "Signing in..." : "Sign in"}
             </Button>
-            <p className="rounded-md border border-dashed border-border bg-muted/40 p-2 text-center text-xs text-muted-foreground">
-              Demo credentials — username <span className="font-medium text-foreground">admin</span>{" "}
-              / password <span className="font-medium text-foreground">admin</span>
-            </p>
           </form>
         </CardContent>
       </Card>
