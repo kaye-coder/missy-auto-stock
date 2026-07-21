@@ -147,6 +147,19 @@ function RootComponent() {
     router.navigate({ to: "/login" });
   };
 
+  // Show logo-only splash while auth state hydrates
+  if (!hydrated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <img
+          src={logoUrl}
+          alt="Missy"
+          className="h-24 w-auto animate-pulse select-none"
+        />
+      </div>
+    );
+  }
+
   // Render login page without app shell
   if (pathname === "/login" || !session) {
     return (
