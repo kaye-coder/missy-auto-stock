@@ -10,12 +10,11 @@ Run the app locally on your MacBook.
 
 ## Database
 
-This project uses **PostgreSQL** through Lovable Cloud / Supabase.
+This project uses **PostgreSQL** through a local Supabase stack.
 
 - **Type:** PostgreSQL 15+ (relational, row-level security enabled)
-- **Why Postgres:** works offline with the local dev server, handles sales/inventory/customers reliably, and scales from a single MacBook to production.
-- **Local dev:** the frontend talks to the cloud backend by default; no local Postgres install required.
-- **If you want a local copy** (backup/testing): install Postgres via Homebrew (`brew install postgresql`), or use the [Supabase CLI](https://supabase.com/docs/guides/cli) for a local Supabase stack.
+- **Why Postgres:** handles sales/inventory/customers reliably and scales from a single MacBook to a local LAN.
+- **Local dev:** the frontend talks to a local Supabase backend; no cloud connection is required after setup.
 
 ## Run the app
 
@@ -33,7 +32,11 @@ bun run dev
 
 The app opens at `http://localhost:8080`.
 
+## Full offline Mac + LAN setup
+
+For a complete step-by-step guide — including Docker, Supabase CLI, `.env` configuration, and connecting other computers on the same LAN — see **[SETUP_MAC.md](SETUP_MAC.md)**.
+
 ## Environment notes
 
-- Supabase credentials are already configured for Lovable Cloud.
-- For fully offline development, run a local Supabase stack and point the app to it.
+- Supabase credentials are configured in your local `.env` file.
+- For fully offline LAN use, run a local Supabase stack and point the app to it (see SETUP_MAC.md).

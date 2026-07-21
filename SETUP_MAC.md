@@ -1,12 +1,12 @@
-# Missy — Local Setup on Mac (Offline LAN)
+# Missy’s Auto Wares — Mac Setup & Offline LAN Guide
 
-Complete step-by-step guide to run this project locally on macOS with your own offline database. No internet is required after the initial setup.
+Complete guide to install and run this project on macOS, completely offline over a local network after the initial setup. No cloud services are required once installed.
 
 ---
 
 ## What this guide covers
 
-- Installing everything needed on the server Mac
+- Installing everything on the server Mac
 - Installing the project
 - Starting the local database and app
 - Connecting other computers on the same Wi-Fi / LAN
@@ -15,7 +15,7 @@ Complete step-by-step guide to run this project locally on macOS with your own o
 
 ---
 
-## What you'll install
+## What you’ll install
 
 1. **Homebrew** — Mac package manager (installs everything else)
 2. **Git** — to download the project
@@ -24,6 +24,8 @@ Complete step-by-step guide to run this project locally on macOS with your own o
 5. **Supabase CLI** — manages the local database (Postgres + Auth + Storage + Realtime)
 
 Total install size: ~4 GB. Time: ~30 minutes first time, then `supabase start` + `bun dev` after that.
+
+> This app is built with React + TanStack Start. The backend is local Supabase (Postgres), not Laravel or MySQL.
 
 ---
 
@@ -91,7 +93,7 @@ git clone <YOUR_GIT_URL_HERE> missy
 cd missy
 ```
 
-Replace `<YOUR_GIT_URL_HERE>` with the URL from your Lovable project's GitHub.
+Replace `<YOUR_GIT_URL_HERE>` with the URL from your Lovable project’s GitHub.
 
 ---
 
@@ -101,6 +103,8 @@ Replace `<YOUR_GIT_URL_HERE>` with the URL from your Lovable project's GitHub.
 bun install
 ```
 
+This downloads the frontend packages. It needs internet the first time.
+
 ---
 
 ## Step 6 — Start the local database
@@ -109,7 +113,7 @@ bun install
 supabase start
 ```
 
-First run downloads Docker images (~2 GB, takes 5–10 min). When done, you'll see output like:
+First run downloads Docker images (~2 GB, takes 5–10 min). When done, you’ll see output like:
 
 ```
 API URL: http://127.0.0.1:54321
@@ -140,7 +144,7 @@ SUPABASE_SERVICE_ROLE_KEY=<paste service_role key here>
 Important notes:
 
 - On the **server Mac**, use `127.0.0.1` for everything. The app backend runs on the same machine, so it talks directly to the local database.
-- Do **not** omit `SUPABASE_SERVICE_ROLE_KEY`. The app needs it to run server-side tasks even in local mode.
+- Do **not** omit `SUPABASE_SERVICE_ROLE_KEY`. The app needs it for server-side tasks even in local mode.
 - If other computers on the same LAN will use the app, see **Step 10** for the client-side URL change.
 
 Save the file.
@@ -173,7 +177,7 @@ Open http://localhost:8080 on the server Mac, or `http://YOUR-MAC-IP:8080` from 
 
 ### On the server Mac
 
-1. Find your Mac's local IP address:
+1. Find your Mac’s local IP address:
 
 ```bash
 ifconfig | grep "inet " | grep -v 127.0.0.1
@@ -237,6 +241,14 @@ To stop:
 
 ---
 
+## Multi-user and session behavior
+
+- Users and sessions are stored in the shared local Postgres database (`app_users` and `app_sessions` tables), so every computer on the LAN sees the same users.
+- Each browser tab/window gets its own independent session. Logging in as a different user in one tab does not change another tab.
+- Duplicating a tab gives it a new, independent session automatically.
+
+---
+
 ## Troubleshooting
 
 ### Error: "Missing Supabase environment variable: SUPABASE_SERVICE_ROLE_KEY"
@@ -271,7 +283,7 @@ Open Docker Desktop and wait for it to fully start.
 
 ### Error: "Port 54321 already in use"
 
-Another Supabase project is running. Run `supabase stop` in that project's folder first.
+Another Supabase project is running. Run `supabase stop` in that project’s folder first.
 
 ### App loads but login fails / blank screen
 
@@ -279,11 +291,17 @@ Check `.env` values match `supabase status` output exactly, then restart `bun de
 
 ### Slow first `supabase start`
 
-Normal — it's downloading Docker images. Later starts take ~10 seconds.
+Normal — it’s downloading Docker images. Later starts take ~10 seconds.
 
 ### Changes to `.env` not taking effect
 
 Stop `bun dev` with `Ctrl + C` and start it again. The app reads `.env` only at startup.
+
+### Client Mac can’t reach the app
+
+1. Make sure the server Mac is running `bun dev --host 0.0.0.0` (not just `bun dev`).
+2. Make sure `VITE_SUPABASE_URL` in the server `.env` uses the server Mac’s LAN IP, not `127.0.0.1`.
+3. Make sure both devices are on the same Wi-Fi/LAN and ports `8080` and `54321` are not blocked by a firewall.
 
 ---
 
@@ -341,4 +359,4 @@ This deletes all data and re-creates the database with the original migrations. 
 
 ---
 
-That's it — you are fully offline and ready to use the app on your local network.
+That’s it — you are fully offline and ready to use the app on your local network.
