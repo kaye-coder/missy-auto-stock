@@ -53,6 +53,13 @@ export const logoutUser = createServerFn({ method: "POST" })
     return logoutByToken(data.token);
   });
 
+export const cloneCurrentSession = createServerFn({ method: "POST" })
+  .inputValidator((data: TokenInput) => data)
+  .handler(async ({ data }) => {
+    const { cloneSessionByToken } = await import("./auth.server");
+    return cloneSessionByToken(data.token);
+  });
+
 export const listAppUsers = createServerFn({ method: "POST" })
   .inputValidator((data: TokenInput) => data)
   .handler(async ({ data }) => {

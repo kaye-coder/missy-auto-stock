@@ -17,7 +17,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
-import { getSession, logout, refreshSession, type Session } from "@/lib/auth";
+import { getSession, logout, refreshSession, startTabSessionIsolation, type Session } from "@/lib/auth";
 import { useRealtimeInvalidation } from "@/lib/realtime";
 
 function NotFoundComponent() {
@@ -120,9 +120,11 @@ function RootComponent() {
     setSession(getSession());
     setHydrated(true);
     refreshSession().then(setSession).catch(() => setSession(null));
+    const stopTabIsolation = startTabSessionIsolation(setSession);
     const sync = () => setSession(getSession());
     window.addEventListener("missy:auth-changed", sync);
     return () => {
+      stopTabIsolation();
       window.removeEventListener("missy:auth-changed", sync);
     };
   }, []);
