@@ -138,13 +138,7 @@ async function getUserById(id: string) {
   return (data as DbUser | null) ?? null;
 }
 
-export async function loginWithPassword(username: string, password: string) {
-  const user = await findUserByUsername(username);
-  if (!user || user.password_hash !== (await hashPassword(password, user.password_salt))) {
-    throw new Error("Wrong credentials");
-  }
-  if (!user.active) throw new Error("This account is disabled");
-
+async function createSessionForUser(user: DbUser) {
   const token = createSecret();
   const tokenHash = await hashToken(token);
   const createdAt = new Date();
@@ -157,6 +151,32 @@ export async function loginWithPassword(username: string, password: string) {
   if (error) throw error;
 
   return { token, session: mapSession(user, createdAt.toISOString()) };
+}
+
+export async function loginWithPassword(username: string, password: string) {
+  const user = await findUserByUsername(username);
+  if (!user || user.password_hash !== (await hashPassword(password, user.password_salt))) {
+    throw new Error("Wrong credentials");
+  }
+  if (!user.active) throw new Error("This account is disabled");
+
+  return createSessionForUser(user);
+}
+
+export async function cloneSessionByToken(token: string | null | undefined) {
+  if (!token) throw new Error("Not signed in");
+  const tokenHash = await hashToken(token);
+  const { data: appSession, error } = await supabaseAdmin
+    .from("app_sessions")
+    .select("id, user_id, expires_at")
+    .eq("token_hash", tokenHash)
+    .maybeSingle();
+  if (error) throw error;
+  if (!appSession || new Date(appSession.expires_at).getTime() <= Date.now()) throw new Error("Not signed in");
+
+  const user = await getUserById(appSession.user_id);
+  if (!user?.active) throw new Error("Not signed in");
+  return createSessionForUser(user);
 }
 
 export async function getSessionFromToken(token: string | null | undefined) {

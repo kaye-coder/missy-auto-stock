@@ -1,4 +1,5 @@
 import {
+  cloneCurrentSession,
   createAppUser,
   deleteAppUser,
   getCurrentUser,
@@ -11,6 +12,9 @@ import {
 
 const SESSION_KEY = "missy.auth.v2";
 const USERS_KEY = "missy.users.v1";
+const TAB_ID_KEY = "missy.tab.id.v1";
+const TAB_CHANNEL = "missy.tab-isolation.v1";
+const INSTANCE_ID = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
 
 export const MODULES = [
   "pos",
@@ -64,6 +68,10 @@ const DEFAULT_ADMIN: User = {
 
 type StoredAuth = { token: string; session: Session };
 
+type TabMessage =
+  | { type: "probe"; tabId: string; instanceId: string }
+  | { type: "duplicate"; tabId: string; instanceId: string; target: string };
+
 function readUsers(): User[] {
   if (typeof window === "undefined") return [DEFAULT_ADMIN];
   try {
@@ -98,6 +106,16 @@ function getToken(): string {
   const token = getStoredAuth()?.token;
   if (!token) throw new Error("Not signed in");
   return token;
+}
+
+function getTabId(): string {
+  if (typeof window === "undefined") return INSTANCE_ID;
+  let tabId = sessionStorage.getItem(TAB_ID_KEY);
+  if (!tabId) {
+    tabId = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+    sessionStorage.setItem(TAB_ID_KEY, tabId);
+  }
+  return tabId;
 }
 
 async function importLegacyUsers() {
@@ -145,6 +163,47 @@ export async function login(username: string, password: string): Promise<Session
 function saveAuth(auth: StoredAuth) {
   sessionStorage.setItem(SESSION_KEY, JSON.stringify(auth));
   window.dispatchEvent(new CustomEvent("missy:auth-changed"));
+}
+
+export function startTabSessionIsolation(onSessionChange: (session: Session | null) => void) {
+  if (typeof window === "undefined" || !("BroadcastChannel" in window)) return () => undefined;
+  const channel = new BroadcastChannel(TAB_CHANNEL);
+  let cloning = false;
+
+  const cloneForThisTab = async () => {
+    if (cloning) return;
+    const auth = getStoredAuth();
+    if (!auth) return;
+    cloning = true;
+    try {
+      sessionStorage.setItem(TAB_ID_KEY, crypto.randomUUID());
+      const next = await cloneCurrentSession({ data: { token: auth.token } });
+      saveAuth(next);
+      onSessionChange(next.session);
+    } catch {
+      onSessionChange(getSession());
+    } finally {
+      cloning = false;
+    }
+  };
+
+  channel.onmessage = (event: MessageEvent<TabMessage>) => {
+    const message = event.data;
+    if (!message || message.instanceId === INSTANCE_ID) return;
+    const tabId = getTabId();
+    if (message.type === "probe" && message.tabId === tabId) {
+      channel.postMessage({ type: "duplicate", tabId, instanceId: INSTANCE_ID, target: message.instanceId } satisfies TabMessage);
+    }
+    if (message.type === "duplicate" && message.target === INSTANCE_ID && message.tabId === tabId) {
+      void cloneForThisTab();
+    }
+  };
+
+  window.setTimeout(() => {
+    channel.postMessage({ type: "probe", tabId: getTabId(), instanceId: INSTANCE_ID } satisfies TabMessage);
+  }, 200);
+
+  return () => channel.close();
 }
 
 export async function refreshSession(): Promise<Session | null> {
