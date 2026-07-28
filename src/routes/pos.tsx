@@ -508,6 +508,8 @@ function POSPage() {
           </CardContent>
         </Card>
       </div>
+
+      <ReceiptPreview receipt={previewReceipt} onClose={() => setPreviewReceipt(null)} />
     </div>
   );
 }
