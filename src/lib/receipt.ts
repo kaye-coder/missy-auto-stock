@@ -122,14 +122,22 @@ function buildHtml(r: ReceiptData, settings: CheckoutSettings): string {
     </div>
   </div>
   <script>
+    function go() {
+      window.focus();
+      window.print();
+    }
+    window.addEventListener('afterprint', function () { window.close(); });
     window.addEventListener('load', function () {
-      setTimeout(function () {
-        window.focus();
-        window.print();
-      }, 250);
-      window.addEventListener('afterprint', function () { window.close(); });
+      var imgs = Array.prototype.slice.call(document.images);
+      Promise.all(imgs.map(function (i) {
+        return i.complete ? Promise.resolve() : new Promise(function (res) {
+          i.addEventListener('load', res); i.addEventListener('error', res);
+        });
+      })).then(function () { setTimeout(go, 150); });
+      setTimeout(go, 2500); // safety net if an image never resolves
     });
   </script>
+
 </body>
 </html>`;
 }
