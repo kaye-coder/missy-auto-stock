@@ -122,7 +122,10 @@ function buildHtml(r: ReceiptData, settings: CheckoutSettings): string {
     </div>
   </div>
   <script>
+    var printed = false;
     function go() {
+      if (printed) return;
+      printed = true;
       window.focus();
       window.print();
     }
