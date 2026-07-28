@@ -59,6 +59,8 @@ function POSPage() {
     };
   }, []);
 
+  const [previewReceipt, setPreviewReceipt] = useState<ReceiptData | null>(null);
+
   const { data: products = [] } = useQuery({
     queryKey: ["products"],
     queryFn: async () => {
@@ -210,7 +212,7 @@ function POSPage() {
         customerId === "walkin"
           ? "Walk-in"
           : customers.find((c) => c.id === customerId)?.name ?? "Walk-in";
-      printReceipt({
+      setPreviewReceipt({
         receiptNumber: sale.receipt_number,
         createdAt: new Date().toISOString(),
         cashier: getSession()?.fullName ?? getSession()?.username ?? "—",
