@@ -20,7 +20,8 @@ import { Plus, Minus, Trash2, Search, Receipt, ShoppingCart, Sparkles, ScanLine 
 import { currency } from "@/lib/format";
 import { PageHeader } from "@/components/PageHeader";
 import { loadSettings, bestAutoDiscount, type CheckoutSettings } from "@/lib/settings";
-import { printReceipt } from "@/lib/receipt";
+import type { ReceiptData } from "@/lib/receipt";
+import { ReceiptPreview } from "@/components/ReceiptPreview";
 import { getSession } from "@/lib/auth";
 import type { Product, Category, Customer } from "@/lib/db-types";
 
