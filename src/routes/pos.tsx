@@ -20,7 +20,8 @@ import { Plus, Minus, Trash2, Search, Receipt, ShoppingCart, Sparkles, ScanLine 
 import { currency } from "@/lib/format";
 import { PageHeader } from "@/components/PageHeader";
 import { loadSettings, bestAutoDiscount, type CheckoutSettings } from "@/lib/settings";
-import { printReceipt } from "@/lib/receipt";
+import type { ReceiptData } from "@/lib/receipt";
+import { ReceiptPreview } from "@/components/ReceiptPreview";
 import { getSession } from "@/lib/auth";
 import type { Product, Category, Customer } from "@/lib/db-types";
 
@@ -57,6 +58,8 @@ function POSPage() {
       window.removeEventListener("storage", handler);
     };
   }, []);
+
+  const [previewReceipt, setPreviewReceipt] = useState<ReceiptData | null>(null);
 
   const { data: products = [] } = useQuery({
     queryKey: ["products"],
@@ -209,7 +212,7 @@ function POSPage() {
         customerId === "walkin"
           ? "Walk-in"
           : customers.find((c) => c.id === customerId)?.name ?? "Walk-in";
-      printReceipt({
+      setPreviewReceipt({
         receiptNumber: sale.receipt_number,
         createdAt: new Date().toISOString(),
         cashier: getSession()?.fullName ?? getSession()?.username ?? "—",
@@ -505,6 +508,8 @@ function POSPage() {
           </CardContent>
         </Card>
       </div>
+
+      <ReceiptPreview receipt={previewReceipt} onClose={() => setPreviewReceipt(null)} />
     </div>
   );
 }
