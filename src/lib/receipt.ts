@@ -73,9 +73,9 @@ function buildHtml(r: ReceiptData, settings: CheckoutSettings): string {
   .foot { text-align: center; margin-top: 12px; font-size: 11px; color: #555; border-top: 2px dashed var(--pink); padding-top: 8px; }
   .foot .thanks { color: var(--pink-dark); font-weight: 700; font-size: 13px; margin-bottom: 3px; }
   @media print {
-    @page { size: 80mm auto; margin: 0; }
-    body { background: #fff; }
-    .receipt { width: 80mm; padding: 4mm 4mm 8mm; }
+    @page { size: 80mm 297mm portrait; margin: 0; }
+    html, body { width: 80mm; background: #fff; }
+    .receipt { width: 80mm; padding: 4mm 4mm 8mm; transform: none; writing-mode: horizontal-tb; }
   }
 </style>
 </head>
