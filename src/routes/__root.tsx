@@ -14,6 +14,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { StartupBackupPrompt } from "@/components/StartupBackupPrompt";
 import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
@@ -200,6 +201,7 @@ function RootComponent() {
           </div>
         </div>
         <Toaster richColors position="top-right" />
+        <StartupBackupPrompt />
       </SidebarProvider>
     </QueryClientProvider>
   );

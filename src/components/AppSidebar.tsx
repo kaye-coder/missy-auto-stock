@@ -7,6 +7,7 @@ import {
   Tags,
   Users,
   Receipt,
+  ReceiptText,
   Settings,
   BarChart3,
   Truck,
@@ -45,6 +46,7 @@ const manage: Item[] = [
   { title: "Customers", url: "/customers", icon: Users, module: "customers" },
   { title: "Suppliers", url: "/suppliers", icon: Truck, module: "suppliers" },
   { title: "Sales History", url: "/sales", icon: Receipt, module: "sales" },
+  { title: "Receipts", url: "/receipts", icon: ReceiptText, module: "sales" },
   { title: "Settings", url: "/settings", icon: Settings, module: "settings" },
 ];
 
