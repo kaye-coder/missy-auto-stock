@@ -2,6 +2,7 @@ import { loadSettings } from "@/lib/settings";
 import { logoUrl } from "@/lib/logo";
 import { buildReceiptDocument } from "./template";
 import { buildTextDocument } from "./plain-text";
+import { printRawReceipt } from "./raw-print";
 import { PAPER_PROFILES, type PaperSize, type ReceiptData } from "./types";
 
 export class PrintError extends Error {}
