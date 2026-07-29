@@ -10,6 +10,7 @@ import {
   PAPER_PROFILES,
   buildReceiptBody,
   buildReceiptStyles,
+  buildTextDocument,
   downloadReceiptPdf,
   loadPaperSize,
   printReceiptDocument,
@@ -30,6 +31,7 @@ export function ReceiptPreview({ receipt, onClose }: Props) {
 
   const srcDoc = useMemo(() => {
     if (!receipt) return "";
+    if (PAPER_PROFILES[paper].thermal) return buildTextDocument(receipt, loadSettings(), paper, false);
     return `<!doctype html><html><head><meta charset="utf-8" /><style>${buildReceiptStyles(
       paper,
     )} body{padding:8px 0;}</style></head><body>${buildReceiptBody(receipt, loadSettings())}</body></html>`;

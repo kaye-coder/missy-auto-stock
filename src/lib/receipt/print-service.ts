@@ -1,26 +1,27 @@
 import { loadSettings } from "@/lib/settings";
 import { buildReceiptDocument } from "./template";
-import type { PaperSize, ReceiptData } from "./types";
+import { buildTextDocument } from "./plain-text";
+import { PAPER_PROFILES, type PaperSize, type ReceiptData } from "./types";
 
 export class PrintError extends Error {}
 
 /**
- * Sends the receipt to the macOS print system (CUPS/AirPrint) through the
- * browser print pipeline, so any installed printer — USB, Bluetooth, network,
- * AirPrint, thermal or A4 — works with no extra setup.
+ * Sends the receipt to the system print pipeline (CUPS/AirPrint on macOS).
+ *
+ * Thermal profiles (58mm / 80mm) are printed as fixed-pitch ASCII text — no
+ * images, no web fonts, no Unicode punctuation — which is what thermal
+ * printers can actually render. A4 keeps the styled HTML layout.
+ *
+ * Printing happens from a hidden iframe in the current tab so no extra tab or
+ * confirmation step appears. With the browser launched in kiosk-printing mode
+ * (or a default printer set) the job goes straight to the printer.
  */
 export function printReceiptDocument(data: ReceiptData, paper: PaperSize): void {
-  const html = buildReceiptDocument(data, loadSettings(), paper, true);
+  const settings = loadSettings();
+  const html = PAPER_PROFILES[paper].thermal
+    ? buildTextDocument(data, settings, paper, false)
+    : buildReceiptDocument(data, settings, paper, false);
 
-  const w = window.open("", "_blank", "width=420,height=680");
-  if (w) {
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
-    return;
-  }
-
-  // Popup blocked — print from a hidden iframe in the current tab instead.
   const iframe = document.createElement("iframe");
   iframe.setAttribute("aria-hidden", "true");
   Object.assign(iframe.style, {
@@ -30,8 +31,10 @@ export function printReceiptDocument(data: ReceiptData, paper: PaperSize): void 
     width: "0",
     height: "0",
     border: "0",
+    visibility: "hidden",
   });
   document.body.appendChild(iframe);
+
   const doc = iframe.contentDocument;
   if (!doc) {
     iframe.remove();
@@ -40,12 +43,20 @@ export function printReceiptDocument(data: ReceiptData, paper: PaperSize): void 
   doc.open();
   doc.write(html);
   doc.close();
-  window.setTimeout(() => {
+
+  const fire = () => {
     try {
       iframe.contentWindow?.focus();
       iframe.contentWindow?.print();
     } finally {
-      window.setTimeout(() => iframe.remove(), 1500);
+      window.setTimeout(() => iframe.remove(), 2000);
     }
-  }, 500);
+  };
+
+  if (PAPER_PROFILES[paper].thermal) {
+    // Text-only: nothing to wait for.
+    window.setTimeout(fire, 60);
+  } else {
+    window.setTimeout(fire, 500);
+  }
 }

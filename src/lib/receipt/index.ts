@@ -1,6 +1,7 @@
 export * from "./types";
 export * from "./encoding";
 export * from "./template";
+export * from "./plain-text";
 export { printReceiptDocument, PrintError } from "./print-service";
 export { downloadReceiptPdf } from "./pdf-service";
 
