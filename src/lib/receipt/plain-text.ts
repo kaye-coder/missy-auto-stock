@@ -74,7 +74,7 @@ export function renderReceiptText(
   pair("Payment", r.paymentMethod.toUpperCase());
   rule();
 
-  L.push("ITEM");
+  L.push("ITEMS");
   for (const l of r.lines) {
     for (const line of wrap(l.name, W)) L.push(line);
     pair(`  ${l.qty} x ${currency(l.unit_price)}`, currency(l.qty * l.unit_price));
@@ -93,7 +93,7 @@ export function renderReceiptText(
   if (r.balanceDue && r.balanceDue > 0) pair("Balance Due", currency(r.balanceDue));
   rule("=");
   center("Thank you!");
-  center("Please keep this receipt.");
+  center("Please keep this receipt for your records.");
   L.push("");
   L.push("");
   L.push("");
