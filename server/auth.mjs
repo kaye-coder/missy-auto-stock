@@ -164,7 +164,9 @@ export function updateUser(db, token, id, input) {
     throw new Error("Username already exists");
   }
   const remainingAdmins = all
-    .map((u) => (u.id === id ? { role, active } : { role: normalizeRole(u.role), active: Boolean(u.active) }))
+    .map((u) =>
+      u.id === id ? { role, active } : { role: normalizeRole(u.role), active: Boolean(u.active) },
+    )
     .filter((u) => u.role === "admin" && u.active);
   if (remainingAdmins.length === 0) throw new Error("At least one active admin is required");
 

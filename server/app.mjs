@@ -145,7 +145,6 @@ async function handleApi(req, res, url) {
   return false;
 }
 
-
 /**
  * Connect-style middleware: handles /api/* and /uploads/*, otherwise calls next().
  * Mounted both by the Vite dev server and by the standalone server.
@@ -162,7 +161,8 @@ export function apiMiddleware() {
         const { createReadStream } = await import("node:fs");
         const { normalize } = await import("node:path");
         const file = join(UPLOAD_DIR, normalize(path.replace("/uploads/product-images/", "")));
-        if (!file.startsWith(UPLOAD_DIR) || !existsSync(file)) return send(res, 404, { error: "Not found" });
+        if (!file.startsWith(UPLOAD_DIR) || !existsSync(file))
+          return send(res, 404, { error: "Not found" });
         res.writeHead(200, { "cache-control": "public, max-age=31536000, immutable" });
         return createReadStream(file).pipe(res);
       }

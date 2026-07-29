@@ -64,7 +64,10 @@ function toSqlValue(key, value) {
 await initDb();
 const db = getDb();
 const existing = new Set(
-  db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all().map((r) => r.name),
+  db
+    .prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
+    .all()
+    .map((r) => r.name),
 );
 
 db.pragma("foreign_keys = OFF");
@@ -75,7 +78,10 @@ for (const table of TABLES) {
     console.log(`- ${table}: nothing to copy`);
     continue;
   }
-  const columns = db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name);
+  const columns = db
+    .prepare(`PRAGMA table_info(${table})`)
+    .all()
+    .map((c) => c.name);
   let copied = 0;
   const insert = db.transaction(() => {
     for (const row of rows) {

@@ -37,7 +37,14 @@ function addEntry(db, { date, reference, memo, sourceType, sourceId, lines }) {
   );
   for (const line of lines) {
     if (r2(line.debit) === 0 && r2(line.credit) === 0) continue;
-    insertLine.run(newId(), entryId, line.account, r2(line.debit), r2(line.credit), line.description ?? null);
+    insertLine.run(
+      newId(),
+      entryId,
+      line.account,
+      r2(line.debit),
+      r2(line.credit),
+      line.description ?? null,
+    );
   }
   return entryId;
 }
@@ -61,8 +68,18 @@ function postSaleJournal(db, sale) {
     sourceType: "sale",
     sourceId: sale.id,
     lines: [
-      { account: acct(db, cashLike ? "1010" : "1000"), debit: paid, credit: 0, description: "Sale payment received" },
-      { account: acct(db, "1100"), debit: credit, credit: 0, description: "Credit sale — balance due" },
+      {
+        account: acct(db, cashLike ? "1010" : "1000"),
+        debit: paid,
+        credit: 0,
+        description: "Sale payment received",
+      },
+      {
+        account: acct(db, "1100"),
+        debit: credit,
+        credit: 0,
+        description: "Credit sale — balance due",
+      },
       { account: acct(db, "4000"), debit: 0, credit: net, description: "Sales revenue" },
       { account: acct(db, "2100"), debit: 0, credit: r2(sale.tax), description: "VAT output" },
     ],
@@ -92,7 +109,11 @@ function postSaleItemCogs(db, item) {
 
 function postPurchaseJournal(db, purchase) {
   const creditCode =
-    purchase.payment_method === "bank" ? "1010" : purchase.payment_method === "credit" ? "2000" : "1000";
+    purchase.payment_method === "bank"
+      ? "1010"
+      : purchase.payment_method === "credit"
+        ? "2000"
+        : "1000";
 
   addEntry(db, {
     date: purchase.purchase_date,
@@ -101,9 +122,24 @@ function postPurchaseJournal(db, purchase) {
     sourceType: "purchase",
     sourceId: purchase.id,
     lines: [
-      { account: acct(db, "1200"), debit: r2(purchase.subtotal), credit: 0, description: "Inventory purchased" },
-      { account: acct(db, "1300"), debit: r2(purchase.vat_input), credit: 0, description: "VAT input" },
-      { account: acct(db, "2200"), debit: 0, credit: r2(purchase.wht), description: "Withholding tax" },
+      {
+        account: acct(db, "1200"),
+        debit: r2(purchase.subtotal),
+        credit: 0,
+        description: "Inventory purchased",
+      },
+      {
+        account: acct(db, "1300"),
+        debit: r2(purchase.vat_input),
+        credit: 0,
+        description: "VAT input",
+      },
+      {
+        account: acct(db, "2200"),
+        debit: 0,
+        credit: r2(purchase.wht),
+        description: "Withholding tax",
+      },
       {
         account: acct(db, creditCode),
         debit: 0,
@@ -116,7 +152,11 @@ function postPurchaseJournal(db, purchase) {
 
 function postExpenseJournal(db, expense) {
   const creditCode =
-    expense.payment_method === "bank" ? "1010" : expense.payment_method === "credit" ? "2000" : "1000";
+    expense.payment_method === "bank"
+      ? "1010"
+      : expense.payment_method === "credit"
+        ? "2000"
+        : "1000";
   const expenseAccount = expense.account_id ?? acct(db, "6000");
 
   addEntry(db, {
@@ -126,8 +166,18 @@ function postExpenseJournal(db, expense) {
     sourceType: "expense",
     sourceId: expense.id,
     lines: [
-      { account: expenseAccount, debit: r2(expense.amount), credit: 0, description: expense.category },
-      { account: acct(db, "1300"), debit: r2(expense.vat_input), credit: 0, description: "VAT input" },
+      {
+        account: expenseAccount,
+        debit: r2(expense.amount),
+        credit: 0,
+        description: expense.category,
+      },
+      {
+        account: acct(db, "1300"),
+        debit: r2(expense.vat_input),
+        credit: 0,
+        description: "VAT input",
+      },
       { account: acct(db, "2200"), debit: 0, credit: r2(expense.wht), description: "WHT withheld" },
       {
         account: acct(db, creditCode),
@@ -189,7 +239,9 @@ export function applyDefaults(table, row) {
   if (!next.id) next.id = newId();
   if (table === "sales" && !next.receipt_number) next.receipt_number = receiptNumber();
   if (table === "purchases" && !next.purchase_number) next.purchase_number = purchaseNumber();
-  if (table === "purchases" && !next.purchase_date) next.purchase_date = new Date().toISOString().slice(0, 10);
-  if (table === "expenses" && !next.expense_date) next.expense_date = new Date().toISOString().slice(0, 10);
+  if (table === "purchases" && !next.purchase_date)
+    next.purchase_date = new Date().toISOString().slice(0, 10);
+  if (table === "expenses" && !next.expense_date)
+    next.expense_date = new Date().toISOString().slice(0, 10);
   return next;
 }

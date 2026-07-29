@@ -230,13 +230,16 @@ export const authApi = {
   login: (username: string, password: string) =>
     call<{ token: string; session: unknown }>("/api/auth", { op: "login", username, password }),
   session: (token: string) => call<unknown>("/api/auth", { op: "session", token }),
-  clone: (token: string) => call<{ token: string; session: unknown }>("/api/auth", { op: "clone", token }),
+  clone: (token: string) =>
+    call<{ token: string; session: unknown }>("/api/auth", { op: "clone", token }),
   logout: (token: string) => call<unknown>("/api/auth", { op: "logout", token }),
   listUsers: (token: string) => call<unknown[]>("/api/auth", { op: "users.list", token }),
-  createUser: (token: string, user: unknown) => call<unknown>("/api/auth", { op: "users.create", token, user }),
+  createUser: (token: string, user: unknown) =>
+    call<unknown>("/api/auth", { op: "users.create", token, user }),
   updateUser: (token: string, id: string, user: unknown) =>
     call<unknown>("/api/auth", { op: "users.update", token, id, user }),
-  deleteUser: (token: string, id: string) => call<unknown>("/api/auth", { op: "users.delete", token, id }),
+  deleteUser: (token: string, id: string) =>
+    call<unknown>("/api/auth", { op: "users.delete", token, id }),
   migrateUsers: (token: string, users: unknown[]) =>
     call<{ imported: number }>("/api/auth", { op: "users.migrate", token, users }),
 };

@@ -37,7 +37,10 @@ function columns(db, table) {
   if (!columnCache.has(table)) {
     columnCache.set(
       table,
-      db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name),
+      db
+        .prepare(`PRAGMA table_info(${table})`)
+        .all()
+        .map((c) => c.name),
     );
   }
   return columnCache.get(table);
@@ -155,13 +158,20 @@ export function runSelect(db, { table, select, filters, order = [], limit, range
   let sql = `SELECT * FROM ${table}${where.sql}`;
   if (order.length) {
     sql += ` ORDER BY ${order
-      .map((o) => `${String(o.column).replace(/[^a-z0-9_]/gi, "")} ${o.ascending === false ? "DESC" : "ASC"}`)
+      .map(
+        (o) =>
+          `${String(o.column).replace(/[^a-z0-9_]/gi, "")} ${o.ascending === false ? "DESC" : "ASC"}`,
+      )
       .join(", ")}`;
   }
   if (limit) sql += ` LIMIT ${Number(limit)}`;
-  else if (range) sql += ` LIMIT ${Number(range.to) - Number(range.from) + 1} OFFSET ${Number(range.from)}`;
+  else if (range)
+    sql += ` LIMIT ${Number(range.to) - Number(range.from) + 1} OFFSET ${Number(range.from)}`;
 
-  const rows = db.prepare(sql).all(...where.params).map((row) => fromSqlRow(table, row));
+  const rows = db
+    .prepare(sql)
+    .all(...where.params)
+    .map((row) => fromSqlRow(table, row));
   return attachEmbeds(db, table, rows, select);
 }
 
@@ -176,7 +186,10 @@ export function runInsert(db, { table, rows, select }) {
       db.prepare(
         `INSERT INTO ${table} (${keys.join(", ")}) VALUES (${keys.map(() => "?").join(", ")})`,
       ).run(...keys.map((k) => toSqlValue(row[k])));
-      const stored = fromSqlRow(table, db.prepare(`SELECT * FROM ${table} WHERE id = ?`).get(row.id));
+      const stored = fromSqlRow(
+        table,
+        db.prepare(`SELECT * FROM ${table} WHERE id = ?`).get(row.id),
+      );
       afterInsert(db, table, stored);
       inserted.push(stored);
     }
@@ -216,10 +229,9 @@ export function runDelete(db, { table, filters, select }) {
 
 export function runRpc(db, fn, args = {}) {
   if (fn === "decrement_product_stock") {
-    db.prepare("UPDATE products SET stock = MAX(0, stock - ?), updated_at = datetime('now') WHERE id = ?").run(
-      Number(args.p_qty) || 0,
-      args.p_product_id,
-    );
+    db.prepare(
+      "UPDATE products SET stock = MAX(0, stock - ?), updated_at = datetime('now') WHERE id = ?",
+    ).run(Number(args.p_qty) || 0, args.p_product_id);
     return null;
   }
   if (fn === "acct") {
