@@ -115,10 +115,17 @@ export function buildTextDocument(
   const lineHeightPx = fontPx * 1.25;
   const lineHeightMm = lineHeightPx * 0.264583;
   const logoHeightMm = logoSrc ? Math.min(22, Math.round(p.widthMm * 0.35)) : 0;
-  const pageHeightMm = Math.max(
-    paper === "58mm" ? 140 : 120,
-    Math.ceil(text.split("\n").length * lineHeightMm + logoHeightMm + 18),
-  );
+  const neededMm = Math.ceil(text.split("\n").length * lineHeightMm + logoHeightMm + 18);
+  /**
+   * Thermal drivers (e.g. YICHIP) only expose fixed media heights — 210mm,
+   * 297mm, 3276mm. An arbitrary @page height makes CUPS fall back to its own
+   * media and clip the receipt, which is why only the last lines printed.
+   * Snap to the nearest supported height instead.
+   */
+  const SUPPORTED_HEIGHTS_MM = [210, 297, 3276];
+  const pageHeightMm = p.thermal
+    ? (SUPPORTED_HEIGHTS_MM.find((h) => neededMm <= h) ?? 3276)
+    : Math.max(120, neededMm);
   const logo = logoSrc
     ? `<img class="logo" src="${escapeHtml(logoSrc)}" alt="${escapeHtml(s.businessName || "Missy")}" />`
     : "";
