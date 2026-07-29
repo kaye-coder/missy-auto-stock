@@ -75,8 +75,15 @@ export function renderReceiptBlocks(
   const pair = (k: string, v: string, extra: Partial<ReceiptBlock> = {}) => {
     const width = extra.double ? Math.floor(W / 2) : W;
     const val = clean(v);
-    const keyWidth = Math.max(1, width - val.length - 1);
-    const keyLines = wrap(k, keyWidth);
+    const indent = /^\s+/.exec(k)?.[0] ?? "";
+    const keyWidth = width - val.length - 1 - indent.length;
+    if (keyWidth < 4) {
+      // Value nearly fills the line: label above, value right-aligned below.
+      for (const line of wrap(k, width)) push(indent + line, extra);
+      push(" ".repeat(Math.max(0, width - val.length)) + val, extra);
+      return;
+    }
+    const keyLines = wrap(k, keyWidth).map((l) => indent + l);
     // Every line but the last is label overflow; the value rides the last one.
     for (const line of keyLines.slice(0, -1)) push(line, extra);
     const last = keyLines[keyLines.length - 1];
