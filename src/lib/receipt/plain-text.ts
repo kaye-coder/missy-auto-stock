@@ -76,8 +76,8 @@ export function renderReceiptBlocks(
     const width = extra.double ? Math.floor(W / 2) : W;
     const val = clean(v);
     const indent = /^\s+/.exec(k)?.[0] ?? "";
-    const keyWidth = width - val.length - 1 - indent.length;
-    if (keyWidth < 4) {
+    const longestWord = Math.max(...clean(k).split(" ").map((w) => w.length), 1);
+    if (keyWidth < longestWord) {
       // Value nearly fills the line: label above, value right-aligned below.
       for (const line of wrap(k, width)) push(indent + line, extra);
       push(" ".repeat(Math.max(0, width - val.length)) + val, extra);
