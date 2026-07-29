@@ -33,7 +33,7 @@ The app opens at `http://localhost:8080`.
 
 ## Full offline Mac + LAN setup
 
-For a complete step-by-step guide — including Docker, Supabase CLI, `.env` configuration, and connecting other computers on the same LAN — see **[SETUP_MAC.md](SETUP_MAC.md)**.
+For a complete step-by-step guide — including firewall settings, auto-start, backups and connecting other computers on the same LAN — see **[SETUP_MAC.md](SETUP_MAC.md)**.
 
 ## Environment notes
 
