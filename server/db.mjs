@@ -1,4 +1,3 @@
-import Database from "better-sqlite3";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -58,18 +57,24 @@ export function nowIso() {
 let db;
 
 /** Opens (creating if needed) the single SQLite file and applies the schema. */
-export function openDb() {
-  if (db) return db;
-  db = new Database(DB_PATH);
+export async function initDb() {
+  const { open } = await import("./sqlite.mjs");
+  db = await open(DB_PATH);
   db.pragma("journal_mode = WAL");
   db.pragma("foreign_keys = ON");
   db.pragma("busy_timeout = 5000");
   db.exec(readFileSync(join(here, "schema.sql"), "utf8"));
   seed(db);
+  console.log(`[db] SQLite ready via ${db.driver}: ${DB_PATH}`);
   return db;
 }
 
-export function reopenDb() {
+export function getDb() {
+  if (!db) throw new Error("Database has not been opened yet");
+  return db;
+}
+
+export async function reopenDb() {
   if (db) {
     try {
       db.close();
@@ -78,7 +83,14 @@ export function reopenDb() {
     }
     db = undefined;
   }
-  return openDb();
+  return initDb();
+}
+
+export function closeDb() {
+  if (db) {
+    db.close();
+    db = undefined;
+  }
 }
 
 function seed(handle) {
@@ -93,7 +105,7 @@ function seed(handle) {
   seedAccounts();
 
   const admins = handle.prepare("SELECT COUNT(*) AS n FROM app_users").get();
-  if (admins.n === 0) {
+  if (Number(admins.n) === 0) {
     const salt = newSecret();
     handle
       .prepare(
