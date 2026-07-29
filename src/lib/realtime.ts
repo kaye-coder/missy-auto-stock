@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import type { QueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { subscribeToChanges } from "@/lib/local-client";
 
 const TABLE_TO_KEYS: Record<string, string[]> = {
   accounts: ["accounts", "journal", "reconciliation"],
@@ -20,15 +20,13 @@ const TABLE_TO_KEYS: Record<string, string[]> = {
 export function useRealtimeInvalidation(queryClient: QueryClient, enabled: boolean) {
   useEffect(() => {
     if (!enabled) return;
-    const channel = supabase.channel("missy-live-data");
-    Object.keys(TABLE_TO_KEYS).forEach((table) => {
-      channel.on("postgres_changes", { event: "*", schema: "public", table }, () => {
-        for (const key of TABLE_TO_KEYS[table]) queryClient.invalidateQueries({ queryKey: [key] });
-      });
+    return subscribeToChanges(({ table }) => {
+      const keys = TABLE_TO_KEYS[table];
+      if (!keys) {
+        queryClient.invalidateQueries();
+        return;
+      }
+      for (const key of keys) queryClient.invalidateQueries({ queryKey: [key] });
     });
-    channel.subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, [queryClient, enabled]);
 }
