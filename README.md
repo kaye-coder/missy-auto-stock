@@ -4,17 +4,16 @@ Run the app locally on your MacBook.
 
 ## Requirements
 
-- macOS
-- [Homebrew](https://brew.sh) (recommended)
-- Node.js runtime: **Bun** (preferred) or Node 20+
+- macOS (Windows and Linux work too)
+- Node.js 22 or newer
 
 ## Database
 
-This project uses **PostgreSQL** through a local Supabase stack.
+This project uses an **embedded SQLite database** — a single file at `data/missy.db`.
 
-- **Type:** PostgreSQL 15+ (relational, row-level security enabled)
-- **Why Postgres:** handles sales/inventory/customers reliably and scales from a single MacBook to a local LAN.
-- **Local dev:** the frontend talks to a local Supabase backend; no cloud connection is required after setup.
+- Nothing to install or start: the app creates and opens the database itself.
+- No Docker, no database service, no cloud connection at any point.
+- Backed up automatically every 7 days into `data/backups/`, plus manual backup and restore in **Settings → Backups**.
 
 ## Run the app
 
@@ -23,11 +22,11 @@ This project uses **PostgreSQL** through a local Supabase stack.
 git clone <repo-url>
 cd missys-auto-wares
 
-# 2. Install dependencies
-bun install
+# 2. Install dependencies (needs internet once)
+npm install
 
-# 3. Start the local dev server
-bun run dev
+# 3. Start everything — app + database + LAN access
+npm start
 ```
 
 The app opens at `http://localhost:8080`.
@@ -38,5 +37,6 @@ For a complete step-by-step guide — including Docker, Supabase CLI, `.env` con
 
 ## Environment notes
 
-- Supabase credentials are configured in your local `.env` file.
-- For fully offline LAN use, run a local Supabase stack and point the app to it (see SETUP_MAC.md).
+- No credentials or environment variables are required.
+- The server listens on `0.0.0.0:8080`, so other computers on the shop network can use
+  `http://<server-ip>:8080`. Set `PORT` to use a different port.
