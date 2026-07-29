@@ -15,7 +15,7 @@ import {
   type CheckoutSettings, type DiscountRule,
 } from "@/lib/settings";
 import { currency } from "@/lib/format";
-import { supabase } from "@/integrations/supabase/client";
+import { localDb as supabase } from "@/lib/local-client";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
