@@ -1,6 +1,6 @@
 import { copyFileSync, existsSync, readdirSync, statSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
-import { BACKUP_DIR, DB_PATH, openDb, reopenDb } from "./db.mjs";
+import { BACKUP_DIR, DB_PATH, getDb, reopenDb } from "./db.mjs";
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const KEEP = 10;
@@ -20,9 +20,10 @@ export function listBackups() {
 
 /** Uses SQLite's online backup API, so it is safe while the shop is using the app. */
 export async function createBackup(prefix = "missy") {
-  const db = openDb();
+  const db = getDb();
   const name = `${prefix}-${timestamp()}.db`;
-  await db.backup(join(BACKUP_DIR, name));
+  const target = join(BACKUP_DIR, name).replace(/'/g, "''");
+  db.exec(`VACUUM INTO '${target}'`);
   prune();
   return { name, ...listBackups().find((b) => b.name === name) };
 }
@@ -38,14 +39,14 @@ export async function restoreBackup(name) {
   if (!existsSync(source)) throw new Error("That backup no longer exists");
 
   await createBackup("pre-restore");
-  const db = openDb();
+  const db = getDb();
   db.close();
   copyFileSync(source, DB_PATH);
   for (const suffix of ["-wal", "-shm"]) {
     const sidecar = `${DB_PATH}${suffix}`;
     if (existsSync(sidecar)) unlinkSync(sidecar);
   }
-  reopenDb();
+  await reopenDb();
   return { ok: true, restored: name };
 }
 

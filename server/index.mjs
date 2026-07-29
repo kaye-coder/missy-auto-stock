@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 import * as auth from "./auth.mjs";
 import { createBackup, listBackups, restoreBackup, startBackupSchedule } from "./backup.mjs";
-import { DB_PATH, ROOT, UPLOAD_DIR, newId, openDb } from "./db.mjs";
+import { DB_PATH, ROOT, UPLOAD_DIR, getDb, initDb, newId } from "./db.mjs";
 import { runDelete, runInsert, runRpc, runSelect, runUpdate } from "./rest.mjs";
 
 const PORT = Number(process.env.PORT || 8080);
@@ -26,7 +26,8 @@ const MIME = {
   ".woff2": "font/woff2",
 };
 
-const db = openDb();
+await initDb();
+const db = () => getDb();
 startBackupSchedule();
 
 /* ---------- realtime: server-sent events ---------- */
@@ -69,15 +70,15 @@ const DATA_OPS = {
 };
 
 const AUTH_OPS = {
-  login: (body) => auth.login(db, body),
-  session: (body) => auth.sessionFromToken(db, body.token),
-  clone: (body) => auth.cloneSession(db, body.token),
-  logout: (body) => auth.logout(db, body.token),
-  "users.list": (body) => auth.listUsers(db, body.token),
-  "users.create": (body) => auth.createUser(db, body.token, body.user),
-  "users.update": (body) => auth.updateUser(db, body.token, body.id, body.user),
-  "users.delete": (body) => auth.deleteUser(db, body.token, body.id),
-  "users.migrate": (body) => auth.migrateLegacyUsers(db, body.token, body.users),
+  login: (body) => auth.login(db(), body),
+  session: (body) => auth.sessionFromToken(db(), body.token),
+  clone: (body) => auth.cloneSession(db(), body.token),
+  logout: (body) => auth.logout(db(), body.token),
+  "users.list": (body) => auth.listUsers(db(), body.token),
+  "users.create": (body) => auth.createUser(db(), body.token, body.user),
+  "users.update": (body) => auth.updateUser(db(), body.token, body.id, body.user),
+  "users.delete": (body) => auth.deleteUser(db(), body.token, body.id),
+  "users.migrate": (body) => auth.migrateLegacyUsers(db(), body.token, body.users),
 };
 
 async function handleApi(req, res, url) {
@@ -108,7 +109,7 @@ async function handleApi(req, res, url) {
     const body = await readBody(req);
     const op = DATA_OPS[body.op];
     if (!op) throw new Error(`Unsupported operation: ${body.op}`);
-    const data = op(db, body);
+    const data = op(db(), body);
     if (body.op !== "select") broadcast({ table: body.table, op: body.op });
     send(res, 200, { data });
     return true;
@@ -116,7 +117,7 @@ async function handleApi(req, res, url) {
 
   if (path === "/api/rpc" && req.method === "POST") {
     const body = await readBody(req);
-    const data = runRpc(db, body.fn, body.args);
+    const data = runRpc(db(), body.fn, body.args);
     broadcast({ table: "rpc", op: body.fn });
     send(res, 200, { data });
     return true;
@@ -145,7 +146,7 @@ async function handleApi(req, res, url) {
     }
     if (req.method === "POST") {
       const body = await readBody(req);
-      if (!auth.sessionFromToken(db, body.token)) throw new Error("Not signed in");
+      if (!auth.sessionFromToken(db(), body.token)) throw new Error("Not signed in");
       send(res, 200, { data: await createBackup() });
       return true;
     }
@@ -153,7 +154,7 @@ async function handleApi(req, res, url) {
 
   if (path === "/api/backups/restore" && req.method === "POST") {
     const body = await readBody(req);
-    const session = auth.sessionFromToken(db, body.token);
+    const session = auth.sessionFromToken(db(), body.token);
     if (!session || session.role !== "admin") throw new Error("Admin access required");
     const result = await restoreBackup(body.name);
     broadcast({ table: "*", op: "restore" });
