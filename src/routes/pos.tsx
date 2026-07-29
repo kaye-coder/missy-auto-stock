@@ -509,7 +509,43 @@ function POSPage() {
         </Card>
       </div>
 
+      <AlertDialog open={!!askReceipt} onOpenChange={(o) => !o && setAskReceipt(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Do you need a receipt?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The receipt is saved either way and can be reprinted from the Receipts page.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setAskReceipt(null);
+                toast.success("Receipt saved — find it under Receipts");
+              }}
+            >
+              No
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const r = askReceipt;
+                setAskReceipt(null);
+                if (!r) return;
+                try {
+                  printReceiptDocument(r, loadPaperSize());
+                } catch {
+                  toast.error("Printing failed. Please try again.");
+                }
+              }}
+            >
+              Yes, print
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <ReceiptPreview receipt={previewReceipt} onClose={() => setPreviewReceipt(null)} />
+
     </div>
   );
 }
