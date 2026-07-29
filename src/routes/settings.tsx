@@ -8,14 +8,15 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Plus, Save, RotateCcw, AlertTriangle } from "lucide-react";
+import { Trash2, Plus, Save, RotateCcw, AlertTriangle, Database, Download, Upload } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import {
   loadSettings, saveSettings, DEFAULT_SETTINGS,
   type CheckoutSettings, type DiscountRule,
 } from "@/lib/settings";
 import { currency } from "@/lib/format";
-import { supabase } from "@/integrations/supabase/client";
+import { localDb as supabase, backups, type BackupFile } from "@/lib/local-client";
+import { getAuthToken } from "@/lib/auth";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -340,6 +341,8 @@ function SettingsPage() {
         </CardContent>
       </Card>
 
+      <BackupsCard />
+
       <Card className="border-destructive/50">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-destructive">
@@ -388,5 +391,83 @@ function SettingsPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function BackupsCard() {
+  const [files, setFiles] = useState<BackupFile[]>([]);
+  const [busy, setBusy] = useState(false);
+
+  const refresh = () => backups.list().then(setFiles).catch(() => setFiles([]));
+
+  useEffect(() => { void refresh(); }, []);
+
+  const runBackup = async () => {
+    setBusy(true);
+    try {
+      const token = getAuthToken();
+      if (!token) throw new Error("Please sign in again");
+      await backups.create(token);
+      await refresh();
+      toast.success("Backup created");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const runRestore = async (name: string) => {
+    if (!window.confirm(`Restore ${name}? Current data will be replaced (a safety copy is taken first).`)) return;
+    setBusy(true);
+    try {
+      const token = getAuthToken();
+      if (!token) throw new Error("Please sign in again");
+      await backups.restore(token, name);
+      await refresh();
+      toast.success("Backup restored");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Database className="h-5 w-5" />Backups
+        </CardTitle>
+        <CardDescription>
+          The database is backed up automatically every 7 days. You can also take a copy now
+          or roll back to an earlier one.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <Button onClick={runBackup} disabled={busy}>
+          <Download className="mr-2 h-4 w-4" />Back up now
+        </Button>
+        {files.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No backups yet.</p>
+        ) : (
+          <div className="divide-y divide-border rounded-md border border-border">
+            {files.map((file) => (
+              <div key={file.name} className="flex items-center justify-between gap-3 px-3 py-2">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{file.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(file.createdAt).toLocaleString()} · {(file.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                </div>
+                <Button variant="outline" size="sm" disabled={busy} onClick={() => runRestore(file.name)}>
+                  <Upload className="mr-2 h-4 w-4" />Restore
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

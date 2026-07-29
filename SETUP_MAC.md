@@ -1,362 +1,105 @@
-# Missy’s Auto Wares — Mac Setup & Offline LAN Guide
+# Missy — Mac setup (fully offline, no Docker)
 
-Complete guide to install and run this project on macOS, completely offline over a local network after the initial setup. No cloud services are required once installed.
+The app now carries its own database. There is nothing to install besides Node.js:
+the data lives in a single file, `data/missy.db`, created automatically the first
+time you start the app.
 
----
+## 1. Install Node.js (once)
 
-## What this guide covers
-
-- Installing everything on the server Mac
-- Installing the project
-- Starting the local database and app
-- Connecting other computers on the same Wi-Fi / LAN
-- Fixing the most common error: missing `SUPABASE_SERVICE_ROLE_KEY`
-- Daily use, backup, and reset commands
-
----
-
-## What you’ll install
-
-1. **Homebrew** — Mac package manager (installs everything else)
-2. **Git** — to download the project
-3. **Bun** — to run the app
-4. **Docker Desktop** — runs the local database
-5. **Supabase CLI** — manages the local database (Postgres + Auth + Storage + Realtime)
-
-Total install size: ~4 GB. Time: ~30 minutes first time, then `supabase start` + `bun dev` after that.
-
-> This app is built with React + TanStack Start. The backend is local Supabase (Postgres), not Laravel or MySQL.
-
----
-
-## Step 1 — Install Homebrew
-
-Open **Terminal** (press `Cmd + Space`, type "Terminal", hit Enter) and paste:
+Download the **LTS** installer from https://nodejs.org (Node 22 or newer) and run it.
+Check it worked:
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+node -v
 ```
 
-Follow the prompts (it will ask for your Mac password). When it finishes, close Terminal and reopen it.
-
-Verify:
+## 2. Get the project onto the Mac
 
 ```bash
-brew --version
+git clone <repo-url>
+cd missys-auto-wares
+npm install
 ```
 
----
+(`npm install` needs internet once. After that the Mac can stay offline forever.)
 
-## Step 2 — Install Git, Bun, and Supabase CLI
+## 3. Start it
 
 ```bash
-brew install git oven-sh/bun/bun supabase/tap/supabase
+npm start
 ```
 
-Verify:
+That single command starts everything: the database, the shop app and the
+network server. You will see:
+
+```
+Local:   http://localhost:8080
+Network: http://192.168.x.x:8080
+```
+
+Open the local address on the shop computer. **No Docker, no Supabase, no
+separate database to launch.**
+
+To sign in the first time: username `admin`, password `admin`. Change it under
+**Users & Access**.
+
+## 4. Use it from other computers on the shop network
+
+1. On the server Mac, find its address: **System Settings → Network → Wi‑Fi → Details → TCP/IP**, e.g. `192.168.1.50`.
+2. On any other computer or tablet on the same Wi‑Fi/LAN, open
+   `http://192.168.1.50:8080`.
+3. If nothing loads, allow incoming connections: **System Settings → Network → Firewall → Options → allow Node**.
+
+Every computer sees the same live data, and each person signs in with their own
+account. Changes appear on the other screens automatically.
+
+## 5. Start automatically when the Mac turns on (optional)
 
 ```bash
-git --version
-bun --version
-supabase --version
+cd ~/missys-auto-wares
+npm start
 ```
 
----
+To make this automatic, add a Login Item that runs a small script containing the
+two lines above (**System Settings → General → Login Items → +**).
 
-## Step 3 — Install Docker Desktop
+## 6. Backups
 
-Docker runs the local Postgres database.
+- The app backs itself up **every 7 days** automatically.
+- **Settings → Backups** has a **Back up now** button and a **Restore** button for
+  each saved copy (a safety copy is taken before any restore).
+- Backups are ordinary files in `data/backups/`. Copy that folder to a USB stick
+  for off-site safety.
 
-1. Download from https://www.docker.com/products/docker-desktop/
-2. Pick the **Apple Silicon** version for M1/M2/M3/M4 Macs, or **Intel** for older Macs.
-3. Open the `.dmg` file and drag Docker to Applications.
-4. Launch **Docker Desktop** from Applications.
-5. Wait until the whale icon in the menu bar stops animating (it says "Docker Desktop is running").
+## 7. Where your data lives
 
-Verify:
+| What | Where |
+| --- | --- |
+| Database | `data/missy.db` |
+| Backups | `data/backups/` |
+| Product photos | `uploads/product-images/` |
+
+To move the shop to a new Mac, copy the whole project folder (including `data/`
+and `uploads/`), run `npm install`, then `npm start`.
+
+## 8. Moving data from the old hosted database (once)
+
+If you still have the old cloud database and want its records:
 
 ```bash
-docker --version
+SUPABASE_URL="https://xxxx.supabase.co" \
+SUPABASE_SERVICE_ROLE_KEY="your-service-role-key" \
+npm run migrate:postgres
 ```
 
-> Keep Docker Desktop running whenever you want to use the app.
-
----
-
-## Step 4 — Download the project
-
-In Terminal:
-
-```bash
-cd ~/Desktop
-git clone <YOUR_GIT_URL_HERE> missy
-cd missy
-```
-
-Replace `<YOUR_GIT_URL_HERE>` with the URL from your Lovable project’s GitHub.
-
----
-
-## Step 5 — Install project dependencies
-
-```bash
-bun install
-```
-
-This downloads the frontend packages. It needs internet the first time.
-
----
-
-## Step 6 — Start the local database
-
-```bash
-supabase start
-```
-
-First run downloads Docker images (~2 GB, takes 5–10 min). When done, you’ll see output like:
-
-```
-API URL: http://127.0.0.1:54321
-DB URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
-Studio URL: http://127.0.0.1:54323
-anon key: eyJhbGciOi...
-service_role key: eyJhbGciOi...
-```
-
-**Copy all three values: `API URL`, `anon key`, and `service_role key` — you need them next.**
-
----
-
-## Step 7 — Create your local `.env` file
-
-Create a file named `.env` in the project folder (`~/Desktop/missy/.env`) and paste this, replacing the placeholder values with the ones from Step 6:
-
-```env
-VITE_SUPABASE_URL=http://127.0.0.1:54321
-VITE_SUPABASE_PUBLISHABLE_KEY=<paste anon key here>
-VITE_SUPABASE_PROJECT_ID=local
-
-SUPABASE_URL=http://127.0.0.1:54321
-SUPABASE_PUBLISHABLE_KEY=<paste anon key here>
-SUPABASE_SERVICE_ROLE_KEY=<paste service_role key here>
-```
-
-Important notes:
-
-- On the **server Mac**, use `127.0.0.1` for everything. The app backend runs on the same machine, so it talks directly to the local database.
-- Do **not** omit `SUPABASE_SERVICE_ROLE_KEY`. The app needs it for server-side tasks even in local mode.
-- If other computers on the same LAN will use the app, see **Step 10** for the client-side URL change.
-
-Save the file.
-
----
-
-## Step 8 — Apply the database schema
-
-This creates all the tables (products, sales, customers, users, accounts, etc.) in your local database:
-
-```bash
-supabase db reset
-```
-
-This runs every migration file in `supabase/migrations/` and seeds your chart of accounts.
-
----
-
-## Step 9 — Run the app
-
-```bash
-bun dev --host 0.0.0.0
-```
-
-Open http://localhost:8080 on the server Mac, or `http://YOUR-MAC-IP:8080` from another computer.
-
----
-
-## Step 10 — Use the app from other computers on the same LAN
-
-### On the server Mac
-
-1. Find your Mac’s local IP address:
-
-```bash
-ifconfig | grep "inet " | grep -v 127.0.0.1
-```
-
-Or go to **System Settings → Network → Wi-Fi → Details → IP Address**.  
-Example: `192.168.1.42`
-
-2. Make sure the `.env` file has the server IP in `VITE_SUPABASE_URL`. This is the URL the browser on other computers will use to reach the database. The server Mac backend can still use `127.0.0.1`:
-
-```env
-VITE_SUPABASE_URL=http://192.168.1.42:54321
-SUPABASE_URL=http://127.0.0.1:54321
-SUPABASE_SERVICE_ROLE_KEY=<paste service_role key here>
-```
-
-> Replace `192.168.1.42` with your actual Mac IP address.
-
-3. Restart the app after changing `.env`:
-
-```bash
-# Press Ctrl+C in the terminal running bun dev, then:
-bun dev --host 0.0.0.0
-```
-
-### On each client computer
-
-Open a browser and go to:
-
-```
-http://<server-mac-ip>:8080
-```
-
-Example: `http://192.168.1.42:8080`
-
-No `.env` file is needed on client computers. They only need the browser.
-
-> Make sure both computers are on the same Wi-Fi network or LAN. If you use a firewall or router, ports `8080` and `54321` must be allowed between devices.
-
----
-
-## Daily use (after setup is done)
-
-Every time you want to use the app:
-
-1. Open **Docker Desktop** (wait for the whale to be steady).
-2. In Terminal:
-
-```bash
-cd ~/Desktop/missy
-supabase start
-bun dev --host 0.0.0.0
-```
-
-3. Open http://localhost:8080 on the server Mac, or `http://YOUR-MAC-IP:8080` from another computer.
-
-To stop:
-
-- Press `Ctrl + C` in the terminal running `bun dev`.
-- Run `supabase stop` to shut the database down.
-
----
-
-## Multi-user and session behavior
-
-- Users and sessions are stored in the shared local Postgres database (`app_users` and `app_sessions` tables), so every computer on the LAN sees the same users.
-- Each browser tab/window gets its own independent session. Logging in as a different user in one tab does not change another tab.
-- Duplicating a tab gives it a new, independent session automatically.
-
----
+This copies products, sales, purchases, expenses, customers, suppliers, accounts,
+journal entries and users into `data/missy.db`. Run it once, then work offline.
 
 ## Troubleshooting
 
-### Error: "Missing Supabase environment variable: SUPABASE_SERVICE_ROLE_KEY"
-
-This means the `.env` file is missing `SUPABASE_SERVICE_ROLE_KEY` or the value is wrong.
-
-Fix:
-
-1. Get the correct service role key:
-
-```bash
-supabase status
-```
-
-2. Copy the value shown after `service_role key:`.
-3. Open `~/Desktop/missy/.env` and make sure this line exists and is filled in:
-
-```env
-SUPABASE_SERVICE_ROLE_KEY=<paste service_role key here>
-```
-
-4. Restart the app:
-
-```bash
-# Press Ctrl+C, then:
-bun dev --host 0.0.0.0
-```
-
-### Error: "Cannot connect to Docker daemon"
-
-Open Docker Desktop and wait for it to fully start.
-
-### Error: "Port 54321 already in use"
-
-Another Supabase project is running. Run `supabase stop` in that project’s folder first.
-
-### App loads but login fails / blank screen
-
-Check `.env` values match `supabase status` output exactly, then restart `bun dev`.
-
-### Slow first `supabase start`
-
-Normal — it’s downloading Docker images. Later starts take ~10 seconds.
-
-### Changes to `.env` not taking effect
-
-Stop `bun dev` with `Ctrl + C` and start it again. The app reads `.env` only at startup.
-
-### Client Mac can’t reach the app
-
-1. Make sure the server Mac is running `bun dev --host 0.0.0.0` (not just `bun dev`).
-2. Make sure `VITE_SUPABASE_URL` in the server `.env` uses the server Mac’s LAN IP, not `127.0.0.1`.
-3. Make sure both devices are on the same Wi-Fi/LAN and ports `8080` and `54321` are not blocked by a firewall.
-
----
-
-## Useful commands
-
-| Command | What it does |
+| Problem | Fix |
 | --- | --- |
-| `supabase start` | Start local database |
-| `supabase stop` | Stop local database |
-| `supabase status` | Show URLs + keys again |
-| `supabase db reset` | Wipe DB and re-apply all migrations (⚠️ deletes all data) |
-| `open http://127.0.0.1:54323` | Open Supabase Studio (visual DB browser) |
-| `bun dev` | Run the app |
-| `bun dev --host 0.0.0.0` | Run the app and allow LAN access |
-| `bun run build` | Build for production |
-
----
-
-## Backing up your data
-
-Your local data lives inside Docker. To back it up:
-
-```bash
-supabase db dump --local -f backup.sql
-```
-
-To restore:
-
-```bash
-psql postgresql://postgres:postgres@127.0.0.1:54322/postgres < backup.sql
-```
-
----
-
-## Resetting everything from scratch
-
-If you want to start fresh:
-
-```bash
-supabase db reset
-```
-
-This deletes all data and re-creates the database with the original migrations. The chart of accounts will be re-seeded.
-
----
-
-## Important notes
-
-- This setup is **completely offline**. No internet is needed after the initial install.
-- No Supabase Cloud account is required.
-- No Lovable Cloud credentials are required.
-- All data is stored on the server Mac in the local Postgres database.
-- The `SUPABASE_SERVICE_ROLE_KEY` is a local key only. It is created by your local Supabase instance and never leaves your machine.
-- Keep your `.env` file private. Do not share it or commit it to GitHub.
-
----
-
-That’s it — you are fully offline and ready to use the app on your local network.
+| `npm start` says port 8080 is in use | `PORT=8081 npm start`, then use `:8081` in the browser |
+| Other computers cannot connect | Allow Node through the firewall; confirm both machines are on the same network |
+| Want a clean slate | **Settings → Danger zone → Reset all data to zero** |
+| App will not start after a bad shutdown | Restore the newest file in `data/backups/` from **Settings → Backups** |
