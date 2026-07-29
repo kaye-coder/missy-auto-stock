@@ -99,6 +99,7 @@ export function buildEscPos(blocks, { cut = true } = {}) {
   }
 
   printer.setTextNormal();
+  printer.setTextSize(0, 0);
   printer.bold(false);
   printer.alignLeft();
   printer.newLine();
