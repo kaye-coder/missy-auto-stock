@@ -27,19 +27,31 @@ export interface ReceiptBlock {
 
 const clean = (s: string) => toPrinterSafe(s).replace(/\s+/g, " ").trim();
 
+/** Word-boundary wrapping; only words longer than the full width are broken. */
 function wrap(text: string, width: number): string[] {
-  const words = clean(text).split(" ");
   const out: string[] = [];
   let line = "";
-  for (const w of words) {
-    if (!line.length) line = w.slice(0, width);
+  const flush = () => {
+    if (line) out.push(line);
+    line = "";
+  };
+  for (const word of clean(text).split(" ")) {
+    if (!word) continue;
+    let w = word;
+    // A single word wider than the paper must be broken, but only that word.
+    while (w.length > width) {
+      flush();
+      out.push(w.slice(0, width));
+      w = w.slice(width);
+    }
+    if (!line.length) line = w;
     else if (line.length + 1 + w.length <= width) line += ` ${w}`;
     else {
-      out.push(line);
-      line = w.slice(0, width);
+      flush();
+      line = w;
     }
   }
-  if (line) out.push(line);
+  flush();
   return out.length ? out : [""];
 }
 
@@ -52,30 +64,42 @@ export function renderReceiptBlocks(
   const B: ReceiptBlock[] = [];
 
   const push = (text: string, extra: Partial<ReceiptBlock> = {}) => B.push({ text, ...extra });
+  const blank = () => push("");
 
   const center = (t: string, extra: Partial<ReceiptBlock> = {}) => {
     const width = extra.double ? Math.floor(W / 2) : W;
     for (const line of wrap(t, width)) push(line, { center: true, ...extra });
   };
+
+  /** Label left, value hard right on the same column for every line. */
   const pair = (k: string, v: string, extra: Partial<ReceiptBlock> = {}) => {
     const width = extra.double ? Math.floor(W / 2) : W;
-    const key = clean(k);
     const val = clean(v);
-    if (key.length + val.length + 1 > width) {
-      push(key.slice(0, width), extra);
+    const indent = /^\s+/.exec(k)?.[0] ?? "";
+    const keyWidth = width - val.length - 1 - indent.length;
+    const longestWord = Math.max(...clean(k).split(" ").map((w) => w.length), 1);
+    if (keyWidth < longestWord) {
+      // Value nearly fills the line: label above, value right-aligned below.
+      for (const line of wrap(k, width)) push(indent + line, extra);
       push(" ".repeat(Math.max(0, width - val.length)) + val, extra);
-    } else {
-      push(key + " ".repeat(Math.max(1, width - key.length - val.length)) + val, extra);
+      return;
     }
+    const keyLines = wrap(k, keyWidth).map((l) => indent + l);
+    // Every line but the last is label overflow; the value rides the last one.
+    for (const line of keyLines.slice(0, -1)) push(line, extra);
+    const last = keyLines[keyLines.length - 1];
+    push(last + " ".repeat(Math.max(1, width - last.length - val.length)) + val, extra);
   };
   const rule = (ch = "-") => push(ch.repeat(W));
 
+  // Header — centred branding
   center((s.businessName || "Missy").toUpperCase(), { double: true, bold: true });
   if (s.businessAddress) center(s.businessAddress);
   if (s.businessPhone) center(`Tel: ${s.businessPhone}`);
   if (s.tinNumber) center(`TIN: ${s.tinNumber}`);
   rule("=");
 
+  // Transaction details — left labels, right values
   pair("Receipt", r.receiptNumber);
   pair("Date", dateTime(r.createdAt));
   pair("Cashier", r.cashier ?? "-");
@@ -83,13 +107,17 @@ export function renderReceiptBlocks(
   pair("Payment", r.paymentMethod.toUpperCase());
   rule();
 
+  // Items — name wrapped on its own lines, qty x price with total right-aligned
   push("ITEMS", { bold: true });
+  blank();
   for (const l of r.lines) {
     for (const line of wrap(l.name, W)) push(line);
     pair(`  ${l.qty} x ${currency(l.unit_price)}`, currency(l.qty * l.unit_price));
   }
+  blank();
   rule();
 
+  // Money block — every value right-aligned to the same column
   pair("Subtotal", currency(r.subtotal));
   if (r.discount > 0) pair("Discount", `-${currency(r.discount)}`);
   pair(`${r.taxLabel} (${(r.taxRate * 100).toFixed(0)}%)`, currency(r.tax));
@@ -98,14 +126,15 @@ export function renderReceiptBlocks(
   if (r.lst && r.lst > 0) pair("Local Service Tax", currency(r.lst));
   rule("=");
   pair("TOTAL", currency(r.total), { double: true, bold: true });
+  rule("=");
   if (typeof r.amountPaid === "number") pair("Amount Paid", currency(r.amountPaid), { bold: true });
   if (r.balanceDue && r.balanceDue > 0) pair("Balance Due", currency(r.balanceDue), { bold: true });
-  rule("=");
+
+  // Footer — centred
+  blank();
   center("Thank you!", { bold: true });
   center("Please keep this receipt for your records.");
-  push("");
-  push("");
-  push("");
+
 
   return B.map((b) => ({ ...b, text: toPrinterSafe(b.text) }));
 }
