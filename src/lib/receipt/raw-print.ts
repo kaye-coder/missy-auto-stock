@@ -10,17 +10,15 @@ import { PAPER_PROFILES, type PaperSize, type ReceiptData } from "./types";
  */
 export async function printRawReceipt(data: ReceiptData, paper: PaperSize): Promise<boolean> {
   if (!PAPER_PROFILES[paper].thermal) return false;
-  try {
-    const blocks = renderReceiptBlocks(data, loadSettings(), paper);
-    const res = await fetch("/api/print", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ blocks }),
-    });
-    if (!res.ok) return false;
-    const json = (await res.json()) as { data?: { printer?: string }; error?: string };
-    return Boolean(json?.data?.printer);
-  } catch {
-    return false;
+  const blocks = renderReceiptBlocks(data, loadSettings(), paper);
+  const res = await fetch("/api/print", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ blocks, paper }),
+  });
+  const json = (await res.json().catch(() => ({}))) as { data?: { printer?: string }; error?: string };
+  if (!res.ok || !json?.data?.printer) {
+    throw new Error(json?.error || "Raw receipt printing failed");
   }
+  return true;
 }

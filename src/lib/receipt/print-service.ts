@@ -1,40 +1,29 @@
 import { loadSettings } from "@/lib/settings";
-import { logoUrl } from "@/lib/logo";
+import { toast } from "sonner";
 import { buildReceiptDocument } from "./template";
-import { buildTextDocument } from "./plain-text";
 import { printRawReceipt } from "./raw-print";
 import { PAPER_PROFILES, type PaperSize, type ReceiptData } from "./types";
 
 export class PrintError extends Error {}
 
-/** Absolute URL so the print iframe can resolve the bundled logo. */
-export function absoluteLogoUrl(): string {
-  try {
-    return new URL(logoUrl, window.location.href).href;
-  } catch {
-    return logoUrl;
-  }
-}
-
 /**
  * Print pipeline.
  *
- * 1. Raw ESC/POS through CUPS (`lp -o raw`) — a continuous byte stream with no
- *    page size, so nothing paginates and no blank page is emitted.
- * 2. Browser print as fallback (no local printer / non-thermal paper), using
- *    the continuous X58mmY3276mm media instead of a fixed 210mm page.
+ * Thermal paper is raw ESC/POS only: no iframe, no @page CSS, no window.print,
+ * and no browser fallback. Browser printing remains only for A4/PDF-style paper.
  */
 export function printReceiptDocument(data: ReceiptData, paper: PaperSize): void {
-  const settings = loadSettings();
   const profile = PAPER_PROFILES[paper];
-  const html = profile.thermal
-    ? buildTextDocument(data, settings, paper, false, absoluteLogoUrl())
-    : buildReceiptDocument(data, settings, paper, false);
 
-  void (async () => {
-    if (await printRawReceipt(data, paper)) return;
-    printWithFrame(html, profile.widthMm);
-  })();
+  if (profile.thermal) {
+    void printRawReceipt(data, paper).catch((error) => {
+      toast.error(error instanceof Error ? error.message : "Raw receipt printing failed");
+    });
+    return;
+  }
+
+  const html = buildReceiptDocument(data, loadSettings(), paper, false);
+  printWithFrame(html, profile.widthMm);
 }
 
 

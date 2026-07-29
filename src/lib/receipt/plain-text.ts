@@ -131,7 +131,7 @@ export function buildTextDocument(
   r: ReceiptData,
   s: CheckoutSettings,
   paper: PaperSize,
-  autoPrint = true,
+  _autoPrint = false,
   logoSrc?: string,
 ): string {
   const p = PAPER_PROFILES[paper];
@@ -142,13 +142,6 @@ export function buildTextDocument(
    */
   const fontPx = paper === "58mm" ? 15 : 16;
   const logoHeightMm = logoSrc ? Math.min(22, Math.round(p.widthMm * 0.35)) : 0;
-  /**
-   * Continuous roll media. The YICHIP/CUPS driver exposes X58mmY3276mm for
-   * variable-length receipts; using a fixed 210mm page makes anything longer
-   * spill onto a second (often blank-first) page. 3276mm is the driver's
-   * continuous media, so the roll simply grows with the content.
-   */
-  const pageHeightMm = p.thermal ? 3276 : 297;
   const logo = logoSrc
     ? `<img class="logo" src="${escapeHtml(logoSrc)}" alt="${escapeHtml(s.businessName || "Missy")}" />`
     : "";
@@ -163,7 +156,6 @@ export function buildTextDocument(
   return `<!doctype html><html><head><meta charset="utf-8" />
 <title>Receipt ${escapeHtml(r.receiptNumber)}</title>
 <style>
-  @page { size: ${p.widthMm}mm ${pageHeightMm}mm; margin: 0; }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: #fff; color: #000;
     width: ${p.widthMm}mm; overflow: visible; }
@@ -177,9 +169,6 @@ export function buildTextDocument(
   .line.b { font-weight: 900; }
   .line.d { font-size: ${Math.round(fontPx * 1.9)}px; font-weight: 900; letter-spacing: -0.5px; }
   .line.c { text-align: center; }
-  @media print { html, body { width: ${p.widthMm}mm; height: auto; overflow: visible; }
-    .receipt-paper, .line { page-break-after: avoid; break-after: avoid; } }
 </style></head><body><div class="receipt-paper">${logo}${body}</div>
-${autoPrint ? `<script>(function(){var printed=false;function readyImages(){var imgs=Array.prototype.slice.call(document.images||[]);return Promise.all(imgs.map(function(i){return i.complete?Promise.resolve():new Promise(function(res){i.addEventListener('load',res,{once:true});i.addEventListener('error',res,{once:true});setTimeout(res,2000);});}));}function go(){if(printed)return;printed=true;setTimeout(function(){window.focus();window.print();},250);}window.addEventListener('afterprint',function(){setTimeout(function(){window.close();},1500);});window.addEventListener('load',function(){readyImages().then(go);setTimeout(go,3000);});})();</script>` : ""}
 </body></html>`;
 }
