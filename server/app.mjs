@@ -85,6 +85,20 @@ async function handleApi(req, res, url) {
     return true;
   }
 
+  if (path === "/api/print") {
+    const { listPrinters, printRaw } = await import("./escpos.mjs");
+    if (req.method === "GET") {
+      send(res, 200, { data: { printers: await listPrinters() } });
+      return true;
+    }
+    if (req.method === "POST") {
+      const body = await readBody(req);
+      const result = await printRaw(body.blocks ?? [], body.printer);
+      send(res, 200, { data: result });
+      return true;
+    }
+  }
+
   if (path === "/api/data" && req.method === "POST") {
     const body = await readBody(req);
     const op = DATA_OPS[body.op];

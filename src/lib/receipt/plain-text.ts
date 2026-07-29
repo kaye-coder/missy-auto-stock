@@ -16,6 +16,15 @@ export function columnsFor(paper: PaperSize): number {
   return paper === "58mm" ? 32 : 42;
 }
 
+/** One printed line plus the ESC/POS emphasis it should use. */
+export interface ReceiptBlock {
+  text: string;
+  /** double width + height (half the columns) */
+  double?: boolean;
+  bold?: boolean;
+  center?: boolean;
+}
+
 const clean = (s: string) => toPrinterSafe(s).replace(/\s+/g, " ").trim();
 
 function wrap(text: string, width: number): string[] {
@@ -34,34 +43,34 @@ function wrap(text: string, width: number): string[] {
   return out.length ? out : [""];
 }
 
-export function renderReceiptText(
+export function renderReceiptBlocks(
   r: ReceiptData,
   s: CheckoutSettings,
   paper: PaperSize,
-): string {
+): ReceiptBlock[] {
   const W = columnsFor(paper);
-  const L: string[] = [];
+  const B: ReceiptBlock[] = [];
 
-  const center = (t: string) => {
-    for (const line of wrap(t, W)) {
-      const pad = Math.max(0, Math.floor((W - line.length) / 2));
-      L.push(" ".repeat(pad) + line);
-    }
+  const push = (text: string, extra: Partial<ReceiptBlock> = {}) => B.push({ text, ...extra });
+
+  const center = (t: string, extra: Partial<ReceiptBlock> = {}) => {
+    const width = extra.double ? Math.floor(W / 2) : W;
+    for (const line of wrap(t, width)) push(line, { center: true, ...extra });
   };
-  const pair = (k: string, v: string) => {
+  const pair = (k: string, v: string, extra: Partial<ReceiptBlock> = {}) => {
+    const width = extra.double ? Math.floor(W / 2) : W;
     const key = clean(k);
     const val = clean(v);
-    const space = Math.max(1, W - key.length - val.length);
-    if (key.length + val.length + 1 > W) {
-      L.push(key.slice(0, W));
-      L.push(" ".repeat(Math.max(0, W - val.length)) + val);
+    if (key.length + val.length + 1 > width) {
+      push(key.slice(0, width), extra);
+      push(" ".repeat(Math.max(0, width - val.length)) + val, extra);
     } else {
-      L.push(key + " ".repeat(space) + val);
+      push(key + " ".repeat(Math.max(1, width - key.length - val.length)) + val, extra);
     }
   };
-  const rule = (ch = "-") => L.push(ch.repeat(W));
+  const rule = (ch = "-") => push(ch.repeat(W));
 
-  center((s.businessName || "Missy").toUpperCase());
+  center((s.businessName || "Missy").toUpperCase(), { double: true, bold: true });
   if (s.businessAddress) center(s.businessAddress);
   if (s.businessPhone) center(`Tel: ${s.businessPhone}`);
   if (s.tinNumber) center(`TIN: ${s.tinNumber}`);
@@ -74,9 +83,9 @@ export function renderReceiptText(
   pair("Payment", r.paymentMethod.toUpperCase());
   rule();
 
-  L.push("ITEMS");
+  push("ITEMS", { bold: true });
   for (const l of r.lines) {
-    for (const line of wrap(l.name, W)) L.push(line);
+    for (const line of wrap(l.name, W)) push(line);
     pair(`  ${l.qty} x ${currency(l.unit_price)}`, currency(l.qty * l.unit_price));
   }
   rule();
@@ -88,17 +97,33 @@ export function renderReceiptText(
     pair(`WHT (${((r.whtRate ?? 0) * 100).toFixed(0)}%)`, `-${currency(r.wht)}`);
   if (r.lst && r.lst > 0) pair("Local Service Tax", currency(r.lst));
   rule("=");
-  pair("TOTAL", currency(r.total));
-  if (typeof r.amountPaid === "number") pair("Amount Paid", currency(r.amountPaid));
-  if (r.balanceDue && r.balanceDue > 0) pair("Balance Due", currency(r.balanceDue));
+  pair("TOTAL", currency(r.total), { double: true, bold: true });
+  if (typeof r.amountPaid === "number") pair("Amount Paid", currency(r.amountPaid), { bold: true });
+  if (r.balanceDue && r.balanceDue > 0) pair("Balance Due", currency(r.balanceDue), { bold: true });
   rule("=");
-  center("Thank you!");
+  center("Thank you!", { bold: true });
   center("Please keep this receipt for your records.");
-  L.push("");
-  L.push("");
-  L.push("");
+  push("");
+  push("");
+  push("");
 
-  return L.map((line) => toPrinterSafe(line)).join("\n");
+  return B.map((b) => ({ ...b, text: toPrinterSafe(b.text) }));
+}
+
+export function renderReceiptText(
+  r: ReceiptData,
+  s: CheckoutSettings,
+  paper: PaperSize,
+): string {
+  const W = columnsFor(paper);
+  return renderReceiptBlocks(r, s, paper)
+    .map((b) => {
+      const width = b.double ? Math.floor(W / 2) : W;
+      if (!b.center) return b.text;
+      const pad = Math.max(0, Math.floor((width - b.text.length) / 2));
+      return " ".repeat(pad) + b.text;
+    })
+    .join("\n");
 }
 
 /** Standalone monospace document used for preview and for the print job. */
@@ -110,44 +135,51 @@ export function buildTextDocument(
   logoSrc?: string,
 ): string {
   const p = PAPER_PROFILES[paper];
-  const text = renderReceiptText(r, s, paper);
-  const fontPx = paper === "58mm" ? 11 : 12;
-  const lineHeightPx = fontPx * 1.25;
-  const lineHeightMm = lineHeightPx * 0.264583;
-  const logoHeightMm = logoSrc ? Math.min(22, Math.round(p.widthMm * 0.35)) : 0;
-  const neededMm = Math.ceil(text.split("\n").length * lineHeightMm + logoHeightMm + 18);
+  const blocks = renderReceiptBlocks(r, s, paper);
   /**
-   * Thermal drivers (e.g. YICHIP) only expose fixed media heights — 210mm,
-   * 297mm, 3276mm. An arbitrary @page height makes CUPS fall back to its own
-   * media and clip the receipt, which is why only the last lines printed.
-   * Snap to the nearest supported height instead.
+   * Readable thermal sizing: ~32 chars across 58mm means roughly 1.6mm per
+   * character, i.e. a 15px monospace body instead of the previous 11px.
    */
-  const SUPPORTED_HEIGHTS_MM = [210, 297, 3276];
-  const pageHeightMm = p.thermal
-    ? (SUPPORTED_HEIGHTS_MM.find((h) => neededMm <= h) ?? 3276)
-    : Math.max(120, neededMm);
+  const fontPx = paper === "58mm" ? 15 : 16;
+  const logoHeightMm = logoSrc ? Math.min(22, Math.round(p.widthMm * 0.35)) : 0;
+  /**
+   * Continuous roll media. The YICHIP/CUPS driver exposes X58mmY3276mm for
+   * variable-length receipts; using a fixed 210mm page makes anything longer
+   * spill onto a second (often blank-first) page. 3276mm is the driver's
+   * continuous media, so the roll simply grows with the content.
+   */
+  const pageHeightMm = p.thermal ? 3276 : 297;
   const logo = logoSrc
     ? `<img class="logo" src="${escapeHtml(logoSrc)}" alt="${escapeHtml(s.businessName || "Missy")}" />`
     : "";
+  const body = blocks
+    .map((b) => {
+      const cls = [b.double ? "d" : "", b.bold ? "b" : "", b.center ? "c" : ""]
+        .filter(Boolean)
+        .join(" ");
+      return `<div class="line${cls ? " " + cls : ""}">${escapeHtml(b.text) || "&nbsp;"}</div>`;
+    })
+    .join("");
   return `<!doctype html><html><head><meta charset="utf-8" />
 <title>Receipt ${escapeHtml(r.receiptNumber)}</title>
 <style>
   @page { size: ${p.widthMm}mm ${pageHeightMm}mm; margin: 0; }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: #fff; color: #000;
-    width: ${p.widthMm}mm; min-height: ${pageHeightMm}mm; overflow: visible; }
-  body { display: block; }
-  .receipt-paper { width: ${p.widthMm}mm; min-height: ${pageHeightMm}mm; overflow: visible; }
-  .logo { display: block; margin: 2mm auto 1mm; width: ${Math.round(p.widthMm * 0.55)}mm;
+    width: ${p.widthMm}mm; overflow: visible; }
+  .receipt-paper { width: ${p.widthMm}mm; padding: 2mm; overflow: visible;
+    page-break-inside: avoid; break-inside: avoid; page-break-after: avoid; break-after: avoid; }
+  .logo { display: block; margin: 1mm auto; width: ${Math.round(p.widthMm * 0.55)}mm;
     max-height: ${logoHeightMm || 18}mm; object-fit: contain; filter: grayscale(1) contrast(2); }
-  pre { display: block; margin: 0; padding: 2mm; width: ${p.widthMm}mm;
-    font-family: "Courier New", Courier, monospace;
-    font-size: ${fontPx}px; line-height: 1.25; font-weight: 700;
-    white-space: pre; letter-spacing: 0; color: #000;
-    min-height: ${Math.max(20, pageHeightMm - logoHeightMm - 6)}mm; overflow: visible; }
+  .line { font-family: "Courier New", Courier, monospace; font-size: ${fontPx}px;
+    line-height: 1.2; font-weight: 600; white-space: pre; color: #000;
+    page-break-inside: avoid; break-inside: avoid; }
+  .line.b { font-weight: 900; }
+  .line.d { font-size: ${Math.round(fontPx * 1.9)}px; font-weight: 900; letter-spacing: -0.5px; }
+  .line.c { text-align: center; }
   @media print { html, body { width: ${p.widthMm}mm; height: auto; overflow: visible; }
-    .receipt-paper, pre { page-break-inside: auto; break-inside: auto; overflow: visible; } }
-</style></head><body><div class="receipt-paper">${logo}<pre>${escapeHtml(text)}</pre></div>
+    .receipt-paper, .line { page-break-after: avoid; break-after: avoid; } }
+</style></head><body><div class="receipt-paper">${logo}${body}</div>
 ${autoPrint ? `<script>(function(){var printed=false;function readyImages(){var imgs=Array.prototype.slice.call(document.images||[]);return Promise.all(imgs.map(function(i){return i.complete?Promise.resolve():new Promise(function(res){i.addEventListener('load',res,{once:true});i.addEventListener('error',res,{once:true});setTimeout(res,2000);});}));}function go(){if(printed)return;printed=true;setTimeout(function(){window.focus();window.print();},250);}window.addEventListener('afterprint',function(){setTimeout(function(){window.close();},1500);});window.addEventListener('load',function(){readyImages().then(go);setTimeout(go,3000);});})();</script>` : ""}
 </body></html>`;
 }

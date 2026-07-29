@@ -2,6 +2,7 @@ import { loadSettings } from "@/lib/settings";
 import { logoUrl } from "@/lib/logo";
 import { buildReceiptDocument } from "./template";
 import { buildTextDocument } from "./plain-text";
+import { printRawReceipt } from "./raw-print";
 import { PAPER_PROFILES, type PaperSize, type ReceiptData } from "./types";
 
 export class PrintError extends Error {}
@@ -16,11 +17,12 @@ export function absoluteLogoUrl(): string {
 }
 
 /**
- * Sends the receipt to the system print pipeline (CUPS/AirPrint on macOS).
+ * Print pipeline.
  *
- * The iframe is rendered off-screen at full paper width and unbounded height:
- * a 0x0 iframe gives the print engine a zero-sized viewport, which is what was
- * clipping the receipt down to its last few lines.
+ * 1. Raw ESC/POS through CUPS (`lp -o raw`) — a continuous byte stream with no
+ *    page size, so nothing paginates and no blank page is emitted.
+ * 2. Browser print as fallback (no local printer / non-thermal paper), using
+ *    the continuous X58mmY3276mm media instead of a fixed 210mm page.
  */
 export function printReceiptDocument(data: ReceiptData, paper: PaperSize): void {
   const settings = loadSettings();
@@ -29,26 +31,12 @@ export function printReceiptDocument(data: ReceiptData, paper: PaperSize): void 
     ? buildTextDocument(data, settings, paper, false, absoluteLogoUrl())
     : buildReceiptDocument(data, settings, paper, false);
 
-  const printWindow = window.open("", "_blank", "popup=yes,width=420,height=720");
-  if (printWindow) {
-    printWindow.document.open();
-    printWindow.document.write(html);
-    printWindow.document.close();
-    const printFromWindow = async () => {
-      await waitForImages(printWindow.document, 2500);
-      printWindow.setTimeout(() => {
-        printWindow.focus();
-        printWindow.print();
-      }, 200);
-      printWindow.setTimeout(() => printWindow.close(), 10000);
-    };
-    if (printWindow.document.readyState === "complete") void printFromWindow();
-    else printWindow.addEventListener("load", () => void printFromWindow(), { once: true });
-    return;
-  }
-
-  printWithFrame(html, profile.widthMm);
+  void (async () => {
+    if (await printRawReceipt(data, paper)) return;
+    printWithFrame(html, profile.widthMm);
+  })();
 }
+
 
 async function waitForImages(doc: Document, timeoutMs: number): Promise<void> {
   const imgs = Array.from(doc.images ?? []);
