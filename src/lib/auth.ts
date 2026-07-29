@@ -216,6 +216,10 @@ export async function logout() {
   window.dispatchEvent(new CustomEvent("missy:auth-changed"));
 }
 
+export function getAuthToken(): string | null {
+  return getStoredAuth()?.token ?? null;
+}
+
 export function getSession(): Session | null {
   return getStoredAuth()?.session ?? null;
 }
