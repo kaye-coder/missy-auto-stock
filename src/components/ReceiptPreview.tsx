@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Printer, Download, X } from "lucide-react";
 import { loadSettings } from "@/lib/settings";
+import { logoUrl } from "@/lib/logo";
 import {
   PAPER_PROFILES,
   buildReceiptBody,
@@ -31,7 +32,8 @@ export function ReceiptPreview({ receipt, onClose }: Props) {
 
   const srcDoc = useMemo(() => {
     if (!receipt) return "";
-    if (PAPER_PROFILES[paper].thermal) return buildTextDocument(receipt, loadSettings(), paper, false);
+    if (PAPER_PROFILES[paper].thermal)
+      return buildTextDocument(receipt, loadSettings(), paper, false, logoUrl);
     return `<!doctype html><html><head><meta charset="utf-8" /><style>${buildReceiptStyles(
       paper,
     )} body{padding:8px 0;}</style></head><body>${buildReceiptBody(receipt, loadSettings())}</body></html>`;
