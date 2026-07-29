@@ -103,7 +103,6 @@ export function buildEscPos(blocks, { cut = true } = {}) {
   printer.bold(false);
   printer.alignLeft();
   printer.newLine();
-  printer.newLine();
   if (cut) printer.partialCut({ verticalTabAmount: 1 });
 
   return printer.getBuffer();
