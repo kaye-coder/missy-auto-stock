@@ -27,19 +27,31 @@ export interface ReceiptBlock {
 
 const clean = (s: string) => toPrinterSafe(s).replace(/\s+/g, " ").trim();
 
+/** Word-boundary wrapping; only words longer than the full width are broken. */
 function wrap(text: string, width: number): string[] {
-  const words = clean(text).split(" ");
   const out: string[] = [];
   let line = "";
-  for (const w of words) {
-    if (!line.length) line = w.slice(0, width);
+  const flush = () => {
+    if (line) out.push(line);
+    line = "";
+  };
+  for (const word of clean(text).split(" ")) {
+    if (!word) continue;
+    let w = word;
+    // A single word wider than the paper must be broken, but only that word.
+    while (w.length > width) {
+      flush();
+      out.push(w.slice(0, width));
+      w = w.slice(width);
+    }
+    if (!line.length) line = w;
     else if (line.length + 1 + w.length <= width) line += ` ${w}`;
     else {
-      out.push(line);
-      line = w.slice(0, width);
+      flush();
+      line = w;
     }
   }
-  if (line) out.push(line);
+  flush();
   return out.length ? out : [""];
 }
 
