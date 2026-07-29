@@ -167,7 +167,7 @@ function fileToBase64(file: File): Promise<string> {
 /** Local disk storage that mimics the few storage calls the app makes. */
 function storageBucket() {
   return {
-    async upload(path: string, file: File) {
+    async upload(path: string, file: File, _options?: { cacheControl?: string; upsert?: boolean }) {
       try {
         const data = await fileToBase64(file);
         const saved = await call<{ path: string; url: string }>("/api/storage/upload", {
@@ -179,7 +179,7 @@ function storageBucket() {
         return { data: null, error: error as Error };
       }
     },
-    async createSignedUrl(path: string) {
+    async createSignedUrl(path: string, _expiresIn?: number) {
       const url = path.startsWith("/") ? path : `/uploads/product-images/${path}`;
       return { data: { signedUrl: url }, error: null };
     },
@@ -203,7 +203,7 @@ export const localDb = {
     }
   },
   storage: {
-    from: () => storageBucket(),
+    from: (_bucket?: string) => storageBucket(),
   },
 };
 
