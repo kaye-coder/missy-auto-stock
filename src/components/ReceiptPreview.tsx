@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Printer, Download, X } from "lucide-react";
 import { loadSettings } from "@/lib/settings";
+import { logoUrl } from "@/lib/logo";
 import {
   PAPER_PROFILES,
   buildReceiptBody,
