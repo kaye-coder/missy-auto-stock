@@ -107,21 +107,30 @@ export function buildTextDocument(
   s: CheckoutSettings,
   paper: PaperSize,
   autoPrint = true,
+  logoSrc?: string,
 ): string {
   const p = PAPER_PROFILES[paper];
   const text = renderReceiptText(r, s, paper);
   const fontPx = paper === "58mm" ? 11 : 12;
+  const logo = logoSrc
+    ? `<img class="logo" src="${escapeHtml(logoSrc)}" alt="${escapeHtml(s.businessName || "Missy")}" />`
+    : "";
   return `<!doctype html><html><head><meta charset="utf-8" />
 <title>Receipt ${escapeHtml(r.receiptNumber)}</title>
 <style>
   @page { size: ${p.widthMm}mm auto; margin: 0; }
-  html, body { margin: 0; padding: 0; background: #fff; color: #000; }
-  pre { margin: 0; padding: 2mm; width: ${p.widthMm}mm;
+  html, body { margin: 0; padding: 0; background: #fff; color: #000;
+    width: ${p.widthMm}mm; height: auto; overflow: visible; }
+  .logo { display: block; margin: 2mm auto 0; width: ${Math.round(p.widthMm * 0.55)}mm;
+    filter: grayscale(1) contrast(2); }
+  pre { margin: 0; padding: 2mm; width: ${p.widthMm}mm; box-sizing: border-box;
     font-family: "Courier New", Courier, monospace;
     font-size: ${fontPx}px; line-height: 1.25; font-weight: 700;
-    white-space: pre; letter-spacing: 0; color: #000; }
-  @media print { html, body { width: ${p.widthMm}mm; } pre { page-break-inside: auto; } }
-</style></head><body><pre>${escapeHtml(text)}</pre>
+    white-space: pre; letter-spacing: 0; color: #000;
+    height: auto; max-height: none; overflow: visible; }
+  @media print { html, body { width: ${p.widthMm}mm; height: auto; overflow: visible; }
+    pre { page-break-inside: auto; break-inside: auto; } }
+</style></head><body>${logo}<pre>${escapeHtml(text)}</pre>
 ${autoPrint ? `<script>window.addEventListener('load',function(){setTimeout(function(){window.focus();window.print();setTimeout(function(){window.close();},400);},120);});window.addEventListener('afterprint',function(){window.close();});</script>` : ""}
 </body></html>`;
 }
