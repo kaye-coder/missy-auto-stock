@@ -29,17 +29,55 @@ export function printReceiptDocument(data: ReceiptData, paper: PaperSize): void 
     ? buildTextDocument(data, settings, paper, false, absoluteLogoUrl())
     : buildReceiptDocument(data, settings, paper, false);
 
+  const printWindow = window.open("", "_blank", "popup=yes,width=420,height=720");
+  if (printWindow) {
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+    const printFromWindow = async () => {
+      await waitForImages(printWindow.document, 2500);
+      printWindow.setTimeout(() => {
+        printWindow.focus();
+        printWindow.print();
+      }, 200);
+      printWindow.setTimeout(() => printWindow.close(), 10000);
+    };
+    if (printWindow.document.readyState === "complete") void printFromWindow();
+    else printWindow.addEventListener("load", () => void printFromWindow(), { once: true });
+    return;
+  }
+
+  printWithFrame(html, profile.widthMm);
+}
+
+async function waitForImages(doc: Document, timeoutMs: number): Promise<void> {
+  const imgs = Array.from(doc.images ?? []);
+  await Promise.all(
+    imgs.map((img) =>
+      img.complete
+        ? Promise.resolve()
+        : new Promise<void>((res) => {
+            img.addEventListener("load", () => res(), { once: true });
+            img.addEventListener("error", () => res(), { once: true });
+            window.setTimeout(res, timeoutMs);
+          }),
+    ),
+  );
+}
+
+function printWithFrame(html: string, widthMm: number): void {
   const iframe = document.createElement("iframe");
   iframe.setAttribute("aria-hidden", "true");
   Object.assign(iframe.style, {
     position: "fixed",
-    left: "-10000px",
-    top: "0",
-    width: profile.thermal ? `${profile.widthMm}mm` : "210mm",
-    height: "2000px",
+    right: "0",
+    bottom: "0",
+    width: `${widthMm}mm`,
+    height: "100vh",
     border: "0",
-    opacity: "0",
+    opacity: "0.01",
     pointerEvents: "none",
+    zIndex: "-1",
   });
   document.body.appendChild(iframe);
 
@@ -52,33 +90,23 @@ export function printReceiptDocument(data: ReceiptData, paper: PaperSize): void 
   doc.write(html);
   doc.close();
 
-  const fire = () => {
+  const fire = async () => {
     try {
-      // Grow the frame to the full document height so nothing is clipped.
-      const h = doc.documentElement?.scrollHeight ?? 0;
-      if (h > 0) iframe.style.height = `${h + 40}px`;
+      await waitForImages(doc, 2500);
+      const h = Math.max(
+        doc.body?.scrollHeight ?? 0,
+        doc.documentElement?.scrollHeight ?? 0,
+        1200,
+      );
+      iframe.style.height = `${h + 120}px`;
       iframe.contentWindow?.focus();
       iframe.contentWindow?.print();
     } finally {
-      window.setTimeout(() => iframe.remove(), 3000);
+      window.setTimeout(() => iframe.remove(), 10000);
     }
   };
 
-  const waitForImages = async () => {
-    const imgs = Array.from(doc.images ?? []);
-    await Promise.all(
-      imgs.map((img) =>
-        img.complete
-          ? Promise.resolve()
-          : new Promise<void>((res) => {
-              img.addEventListener("load", () => res(), { once: true });
-              img.addEventListener("error", () => res(), { once: true });
-              window.setTimeout(res, 1500);
-            }),
-      ),
-    );
-  };
-
-  void waitForImages().then(() => window.setTimeout(fire, 120));
+  if (doc.readyState === "complete") void window.setTimeout(() => void fire(), 200);
+  else iframe.addEventListener("load", () => void window.setTimeout(() => void fire(), 200), { once: true });
 }
 

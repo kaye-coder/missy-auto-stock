@@ -112,25 +112,35 @@ export function buildTextDocument(
   const p = PAPER_PROFILES[paper];
   const text = renderReceiptText(r, s, paper);
   const fontPx = paper === "58mm" ? 11 : 12;
+  const lineHeightPx = fontPx * 1.25;
+  const lineHeightMm = lineHeightPx * 0.264583;
+  const logoHeightMm = logoSrc ? Math.min(22, Math.round(p.widthMm * 0.35)) : 0;
+  const pageHeightMm = Math.max(
+    paper === "58mm" ? 140 : 120,
+    Math.ceil(text.split("\n").length * lineHeightMm + logoHeightMm + 18),
+  );
   const logo = logoSrc
     ? `<img class="logo" src="${escapeHtml(logoSrc)}" alt="${escapeHtml(s.businessName || "Missy")}" />`
     : "";
   return `<!doctype html><html><head><meta charset="utf-8" />
 <title>Receipt ${escapeHtml(r.receiptNumber)}</title>
 <style>
-  @page { size: ${p.widthMm}mm auto; margin: 0; }
+  @page { size: ${p.widthMm}mm ${pageHeightMm}mm; margin: 0; }
+  * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: #fff; color: #000;
-    width: ${p.widthMm}mm; height: auto; overflow: visible; }
-  .logo { display: block; margin: 2mm auto 0; width: ${Math.round(p.widthMm * 0.55)}mm;
-    filter: grayscale(1) contrast(2); }
-  pre { margin: 0; padding: 2mm; width: ${p.widthMm}mm; box-sizing: border-box;
+    width: ${p.widthMm}mm; min-height: ${pageHeightMm}mm; overflow: visible; }
+  body { display: block; }
+  .receipt-paper { width: ${p.widthMm}mm; min-height: ${pageHeightMm}mm; overflow: visible; }
+  .logo { display: block; margin: 2mm auto 1mm; width: ${Math.round(p.widthMm * 0.55)}mm;
+    max-height: ${logoHeightMm || 18}mm; object-fit: contain; filter: grayscale(1) contrast(2); }
+  pre { display: block; margin: 0; padding: 2mm; width: ${p.widthMm}mm;
     font-family: "Courier New", Courier, monospace;
     font-size: ${fontPx}px; line-height: 1.25; font-weight: 700;
     white-space: pre; letter-spacing: 0; color: #000;
-    height: auto; max-height: none; overflow: visible; }
+    min-height: ${Math.max(20, pageHeightMm - logoHeightMm - 6)}mm; overflow: visible; }
   @media print { html, body { width: ${p.widthMm}mm; height: auto; overflow: visible; }
-    pre { page-break-inside: auto; break-inside: auto; } }
-</style></head><body>${logo}<pre>${escapeHtml(text)}</pre>
-${autoPrint ? `<script>window.addEventListener('load',function(){setTimeout(function(){window.focus();window.print();setTimeout(function(){window.close();},400);},120);});window.addEventListener('afterprint',function(){window.close();});</script>` : ""}
+    .receipt-paper, pre { page-break-inside: auto; break-inside: auto; overflow: visible; } }
+</style></head><body><div class="receipt-paper">${logo}<pre>${escapeHtml(text)}</pre></div>
+${autoPrint ? `<script>(function(){var printed=false;function readyImages(){var imgs=Array.prototype.slice.call(document.images||[]);return Promise.all(imgs.map(function(i){return i.complete?Promise.resolve():new Promise(function(res){i.addEventListener('load',res,{once:true});i.addEventListener('error',res,{once:true});setTimeout(res,2000);});}));}function go(){if(printed)return;printed=true;setTimeout(function(){window.focus();window.print();},250);}window.addEventListener('afterprint',function(){setTimeout(function(){window.close();},1500);});window.addEventListener('load',function(){readyImages().then(go);setTimeout(go,3000);});})();</script>` : ""}
 </body></html>`;
 }
