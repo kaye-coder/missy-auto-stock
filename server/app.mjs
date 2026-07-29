@@ -1,30 +1,10 @@
-import { createReadStream, existsSync, writeFileSync } from "node:fs";
-import { createServer } from "node:http";
-import { extname, join, normalize } from "node:path";
-import { fileURLToPath } from "node:url";
+import { existsSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 import * as auth from "./auth.mjs";
 import { createBackup, listBackups, restoreBackup, startBackupSchedule } from "./backup.mjs";
-import { DB_PATH, ROOT, UPLOAD_DIR, getDb, initDb, newId } from "./db.mjs";
+import { DB_PATH, UPLOAD_DIR, getDb, initDb, newId } from "./db.mjs";
 import { runDelete, runInsert, runRpc, runSelect, runUpdate } from "./rest.mjs";
-
-const PORT = Number(process.env.PORT || 8080);
-const HOST = process.env.HOST || "0.0.0.0";
-const DIST = join(ROOT, "dist", "client");
-
-const MIME = {
-  ".html": "text/html; charset=utf-8",
-  ".js": "text/javascript; charset=utf-8",
-  ".css": "text/css; charset=utf-8",
-  ".json": "application/json; charset=utf-8",
-  ".svg": "image/svg+xml",
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".webp": "image/webp",
-  ".ico": "image/x-icon",
-  ".woff2": "font/woff2",
-};
 
 await initDb();
 const db = () => getDb();
@@ -165,52 +145,33 @@ async function handleApi(req, res, url) {
   return false;
 }
 
-function serveFile(res, filePath) {
-  res.writeHead(200, {
-    "content-type": MIME[extname(filePath)] ?? "application/octet-stream",
-    "cache-control": filePath.includes("/assets/") ? "public, max-age=31536000, immutable" : "no-cache",
-  });
-  createReadStream(filePath).pipe(res);
-}
 
-function serveStatic(res, url) {
-  const pathname = decodeURIComponent(url.pathname);
+/**
+ * Connect-style middleware: handles /api/* and /uploads/*, otherwise calls next().
+ * Mounted both by the Vite dev server and by the standalone server.
+ */
+export function apiMiddleware() {
+  return async (req, res, next) => {
+    const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
+    const path = decodeURIComponent(url.pathname);
 
-  if (pathname.startsWith("/uploads/product-images/")) {
-    const file = join(UPLOAD_DIR, normalize(pathname.replace("/uploads/product-images/", "")));
-    if (file.startsWith(UPLOAD_DIR) && existsSync(file)) return serveFile(res, file);
-    return send(res, 404, { error: "Not found" });
-  }
+    if (!path.startsWith("/api/") && !path.startsWith("/uploads/")) return next();
 
-  const candidate = join(DIST, normalize(pathname));
-  if (candidate.startsWith(DIST) && pathname !== "/" && existsSync(candidate)) {
-    return serveFile(res, candidate);
-  }
-  const index = join(DIST, "index.html");
-  if (existsSync(index)) return serveFile(res, index);
-  send(res, 503, { error: "The app has not been built yet. Run: npm run build" });
-}
+    try {
+      if (path.startsWith("/uploads/product-images/")) {
+        const { createReadStream } = await import("node:fs");
+        const { normalize } = await import("node:path");
+        const file = join(UPLOAD_DIR, normalize(path.replace("/uploads/product-images/", "")));
+        if (!file.startsWith(UPLOAD_DIR) || !existsSync(file)) return send(res, 404, { error: "Not found" });
+        res.writeHead(200, { "cache-control": "public, max-age=31536000, immutable" });
+        return createReadStream(file).pipe(res);
+      }
 
-const server = createServer(async (req, res) => {
-  const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
-  try {
-    if (url.pathname.startsWith("/api/")) {
       const handled = await handleApi(req, res, url);
       if (!handled) send(res, 404, { error: "Not found" });
-      return;
+    } catch (error) {
+      console.error("[api]", error);
+      if (!res.headersSent) send(res, 400, { error: error.message ?? "Request failed" });
     }
-    serveStatic(res, url);
-  } catch (error) {
-    console.error("[api]", error);
-    if (!res.headersSent) send(res, 400, { error: error.message ?? "Request failed" });
-  }
-});
-
-server.listen(PORT, HOST, () => {
-  console.log(`\n  Missy is running`);
-  console.log(`  Local:   http://localhost:${PORT}`);
-  console.log(`  Network: http://<this-computer-ip>:${PORT}`);
-  console.log(`  Database: ${DB_PATH}\n`);
-});
-
-export default server;
+  };
+}
