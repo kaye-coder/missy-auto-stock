@@ -90,16 +90,17 @@ export function renderReceiptBlocks(
     const last = keyLines[keyLines.length - 1];
     push(last + " ".repeat(Math.max(1, width - last.length - val.length)) + val, extra);
   };
-  const rule = (ch = "-") => push(ch.repeat(W));
+  // Dashed divider, e.g. "- - - - - - -"
+  const rule = () => push("- ".repeat(Math.floor(W / 2)).trimEnd());
 
   // Header — centred branding
   center((s.businessName || "Missy").toUpperCase(), { double: true, bold: true });
   if (s.businessAddress) center(s.businessAddress);
   if (s.businessPhone) center(`Tel: ${s.businessPhone}`);
   if (s.tinNumber) center(`TIN: ${s.tinNumber}`);
-  rule("=");
+  rule();
 
-  // Transaction details — left labels, right values
+  // Transaction details — left labels, right values (normal single-width text)
   pair("Receipt", r.receiptNumber);
   pair("Date", dateTime(r.createdAt));
   pair("Cashier", r.cashier ?? "-");
@@ -107,12 +108,12 @@ export function renderReceiptBlocks(
   pair("Payment", r.paymentMethod.toUpperCase());
   rule();
 
-  // Items — name wrapped on its own lines, qty x price with total right-aligned
+  // Items — name with line total on the same line, qty x price indented below
   push("ITEMS", { bold: true });
   blank();
   for (const l of r.lines) {
-    for (const line of wrap(l.name, W)) push(line);
-    pair(`  ${l.qty} x ${currency(l.unit_price)}`, currency(l.qty * l.unit_price));
+    pair(l.name, currency(l.qty * l.unit_price));
+    push(`  ${l.qty} x ${currency(l.unit_price)}`);
   }
   blank();
   rule();
@@ -124,11 +125,11 @@ export function renderReceiptBlocks(
   if (r.wht && r.wht > 0)
     pair(`WHT (${((r.whtRate ?? 0) * 100).toFixed(0)}%)`, `-${currency(r.wht)}`);
   if (r.lst && r.lst > 0) pair("Local Service Tax", currency(r.lst));
-  rule("=");
+  rule();
   pair("TOTAL", currency(r.total), { double: true, bold: true });
-  rule("=");
   if (typeof r.amountPaid === "number") pair("Amount Paid", currency(r.amountPaid), { bold: true });
   if (r.balanceDue && r.balanceDue > 0) pair("Balance Due", currency(r.balanceDue), { bold: true });
+  rule();
 
   // Footer — centred
   blank();
