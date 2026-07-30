@@ -48,23 +48,29 @@ export async function pngToRaster(filePath, { targetWidth = 320, maxHeight = 240
     }
   }
 
-  // 3. Floyd–Steinberg dithering to 1 bit
+  // 3. 1-bit conversion. A flat-colour logo prints far cleaner with a plain
+  // threshold; dithering only helps photographic art, where it avoids banding.
   const bits = new Uint8Array(w * h);
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const i = y * w + x;
-      const old = scaled[i];
-      const nv = old < 128 ? 0 : 255;
-      bits[i] = nv === 0 ? 1 : 0; // 1 = burn a dot
-      const err = old - nv;
-      if (x + 1 < w) scaled[i + 1] += (err * 7) / 16;
-      if (y + 1 < h) {
-        if (x > 0) scaled[i + w - 1] += (err * 3) / 16;
-        scaled[i + w] += (err * 5) / 16;
-        if (x + 1 < w) scaled[i + w + 1] += (err * 1) / 16;
+  if (dither) {
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const i = y * w + x;
+        const old = scaled[i];
+        const nv = old < threshold ? 0 : 255;
+        bits[i] = nv === 0 ? 1 : 0; // 1 = burn a dot
+        const err = old - nv;
+        if (x + 1 < w) scaled[i + 1] += (err * 7) / 16;
+        if (y + 1 < h) {
+          if (x > 0) scaled[i + w - 1] += (err * 3) / 16;
+          scaled[i + w] += (err * 5) / 16;
+          if (x + 1 < w) scaled[i + w + 1] += (err * 1) / 16;
+        }
       }
     }
+  } else {
+    for (let i = 0; i < w * h; i++) bits[i] = scaled[i] < threshold ? 1 : 0;
   }
+
 
   // 4. pack into GS v 0 raster payload
   const bytesPerRow = w / 8;
