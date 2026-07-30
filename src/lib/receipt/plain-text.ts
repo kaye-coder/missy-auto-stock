@@ -102,9 +102,10 @@ export function renderReceiptBlocks(
   pair("Payment", r.paymentMethod.toUpperCase());
   rule();
 
-  // Items — 3 column table: Item | Qty | Cost, one row per item
-  push("ITEMS", { bold: true });
+  // Items — 3 column table: Item | Qty | Cost, one row per item (header row
+  // doubles as the section title, so no separate "ITEMS" line).
   const QTY_W = 4;
+
   const costW = Math.max(
     ...r.lines.map((l) => currency(l.qty * l.unit_price).length),
     "Cost".length,
