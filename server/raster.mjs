@@ -10,7 +10,10 @@ import { PNG } from "pngjs";
  * flatten alpha onto white, scale to the head's dot width, Floyd–Steinberg
  * dither to pure black/white, then pack 8 pixels per byte.
  */
-export async function pngToRaster(filePath, { targetWidth = 320, maxHeight = 240 } = {}) {
+export async function pngToRaster(
+  filePath,
+  { targetWidth = 320, maxHeight = 240, threshold = 200, dither = false } = {},
+) {
   const png = PNG.sync.read(await readFile(filePath));
 
   // 1. grayscale with alpha flattened onto white paper
