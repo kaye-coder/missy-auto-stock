@@ -3,6 +3,7 @@ import { currency, dateTime } from "@/lib/format";
 import { loadSettings } from "@/lib/settings";
 import { toPrinterSafe } from "./encoding";
 import { PAPER_PROFILES, type PaperSize, type ReceiptData } from "./types";
+import { CONTACT_LINES } from "./contact";
 
 /**
  * Renders the same receipt layout as a PDF (identical content, widths and
@@ -113,6 +114,9 @@ export function downloadReceiptPdf(r: ReceiptData, paper: PaperSize): void {
   doc.setFontSize(7.5);
   doc.setTextColor(110);
   doc.text("Please keep this receipt for your records.", left + inner / 2, y + 6, { align: "center" });
+  CONTACT_LINES.forEach((contact, i) => {
+    doc.text(contact, left + inner / 2, y + 10 + i * 3.5, { align: "center" });
+  });
 
   doc.save(`${r.receiptNumber}.pdf`);
 }

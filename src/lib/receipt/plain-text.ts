@@ -3,6 +3,7 @@ import type { CheckoutSettings } from "@/lib/settings";
 import { toPrinterSafe } from "./encoding";
 import { escapeHtml } from "./encoding";
 import { PAPER_PROFILES, type PaperSize, type ReceiptData } from "./types";
+import { CONTACT_LINES } from "./contact";
 
 /**
  * Thermal receipt renderer.
@@ -151,6 +152,8 @@ export function renderReceiptBlocks(
   blank();
   center("Thank you!", { bold: true });
   center("Please keep this receipt for your records.");
+  blank();
+  for (const line of CONTACT_LINES) center(line);
 
 
   return B.map((b) => ({ ...b, text: toPrinterSafe(b.text) }));

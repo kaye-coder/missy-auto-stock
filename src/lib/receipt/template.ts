@@ -3,6 +3,7 @@ import type { CheckoutSettings } from "@/lib/settings";
 import logoAsset from "@/lib/logo";
 import { safe } from "./encoding";
 import { PAPER_PROFILES, type PaperSize, type ReceiptData } from "./types";
+import { CONTACT_LINES } from "./contact";
 
 export const receiptLogoUrl = (() => {
   if (typeof window === "undefined") return logoAsset.url;
@@ -43,6 +44,7 @@ export function buildReceiptStyles(paper: PaperSize): string {
   .grand { display: flex; justify-content: space-between; font-size: ${p.baseFontPx + 4}px; font-weight: 800;
     padding: 5px 0; }
   .foot { text-align: center; margin-top: 10px; font-size: ${p.baseFontPx - 1}px; color: var(--muted); }
+  .foot .contact { margin-top: 1px; }
   .foot .thanks { color: var(--pink-dark); font-weight: 800; font-size: ${p.baseFontPx + 1}px; margin-bottom: 3px; }
   @media print {
     ${pageRule}
@@ -104,6 +106,7 @@ export function buildReceiptBody(r: ReceiptData, s: CheckoutSettings): string {
     <div class="foot">
       <div class="thanks">Thank you! &lt;3</div>
       <div>Please keep this receipt for your records.</div>
+      ${CONTACT_LINES.map((l) => `<div class="contact">${safe(l)}</div>`).join("")}
     </div>
   </div>`;
 }
