@@ -184,3 +184,15 @@ CREATE INDEX IF NOT EXISTS idx_journal_lines_account ON journal_lines(account_id
 CREATE INDEX IF NOT EXISTS idx_journal_entries_source ON journal_entries(source_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_token ON app_sessions(token_hash);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON app_users(lower(username));
+
+CREATE TABLE IF NOT EXISTS customer_payments (
+  id TEXT PRIMARY KEY,
+  customer_id TEXT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  payment_number TEXT NOT NULL,
+  amount REAL NOT NULL DEFAULT 0,
+  payment_method TEXT NOT NULL DEFAULT 'cash',
+  notes TEXT,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_customer_payments_customer ON customer_payments(customer_id);
