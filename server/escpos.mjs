@@ -89,17 +89,18 @@ export async function buildEscPos(blocks, { cut = true, logo = true } = {}) {
       const { pngToRaster } = await import("./raster.mjs");
       const here = path.dirname(fileURLToPath(import.meta.url));
       const logoPath = path.join(here, "..", "public", "missy-logo.png");
-      // 58mm heads are 384 dots wide; leave a small margin and centre the raster.
-      const { buffer } = await pngToRaster(logoPath, { targetWidth: 320, maxHeight: 200 });
-      printer.alignCenter();
-      printer.add(buffer); // appends to the job buffer; raw() would send early
-      printer.newLine();
+      // 58mm heads are 384 dots wide; the raster is centred on the full head.
+      const { escStar } = await pngToRaster(logoPath, { targetWidth: 320, maxHeight: 200 });
       printer.alignLeft();
-
+      // ESC * bit image: understood by every ESC/POS head. GS v 0 is skipped
+      // because printers that lack it dump the payload as garbage characters.
+      printer.add(escStar);
+      printer.newLine();
     } catch {
       /* logo is optional — never block a receipt on it */
     }
   }
+
 
 
   for (const block of blocks) {
