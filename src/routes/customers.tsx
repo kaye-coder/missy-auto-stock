@@ -17,9 +17,10 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Wallet } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { ExportButtons } from "@/components/ExportButtons";
+import { CustomerAccountDialog } from "@/components/CustomerAccountDialog";
 import type { Customer } from "@/lib/db-types";
 
 export const Route = createFileRoute("/customers")({
@@ -37,6 +38,7 @@ function CustomersPage() {
   const [form, setForm] = useState<Form>(empty);
   const [confirmDel, setConfirmDel] = useState<Customer | null>(null);
   const [search, setSearch] = useState("");
+  const [accountFor, setAccountFor] = useState<Customer | null>(null);
 
   const { data: allCustomers = [] } = useQuery({
     queryKey: ["customers"],
@@ -190,6 +192,8 @@ function CustomersPage() {
           </TableBody>
         </Table>
       </div>
+
+      <CustomerAccountDialog customer={accountFor} onOpenChange={(o) => !o && setAccountFor(null)} />
 
       <AlertDialog open={!!confirmDel} onOpenChange={(o) => !o && setConfirmDel(null)}>
         <AlertDialogContent>
