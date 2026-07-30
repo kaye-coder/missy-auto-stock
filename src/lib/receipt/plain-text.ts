@@ -71,30 +71,24 @@ export function renderReceiptBlocks(
     for (const line of wrap(t, width)) push(line, { center: true, ...extra });
   };
 
-  /** Label left, value hard right on the same column for every line. */
+  /** Label left, value hard right — ALWAYS one single line. */
   const pair = (k: string, v: string, extra: Partial<ReceiptBlock> = {}) => {
     const width = extra.double ? Math.floor(W / 2) : W;
     const val = clean(v);
     const indent = /^\s+/.exec(k)?.[0] ?? "";
-    const keyWidth = width - val.length - 1 - indent.length;
-    const longestWord = Math.max(...clean(k).split(" ").map((w) => w.length), 1);
-    if (keyWidth < longestWord) {
-      // Value nearly fills the line: label above, value right-aligned below.
-      for (const line of wrap(k, width)) push(indent + line, extra);
-      push(" ".repeat(Math.max(0, width - val.length)) + val, extra);
-      return;
-    }
-    const keyLines = wrap(k, keyWidth).map((l) => indent + l);
-    // Every line but the last is label overflow; the value rides the last one.
-    for (const line of keyLines.slice(0, -1)) push(line, extra);
-    const last = keyLines[keyLines.length - 1];
-    push(last + " ".repeat(Math.max(1, width - last.length - val.length)) + val, extra);
+    let key = indent + clean(k);
+    const room = width - val.length - 1;
+    if (key.length > room) key = key.slice(0, Math.max(0, room - 1)) + ".";
+    push(key + " ".repeat(Math.max(1, width - key.length - val.length)) + val, extra);
   };
   // Dashed divider, e.g. "- - - - - - -"
   const rule = () => push("- ".repeat(Math.floor(W / 2)).trimEnd());
 
-  // Header — centred branding
-  center((s.businessName || "Missy").toUpperCase(), { double: true, bold: true });
+  // Header — centred branding. Double width halves the columns, so only use it
+  // when the whole name fits on one line; otherwise stay single-width bold.
+  const name = clean((s.businessName || "Missy").toUpperCase());
+  if (name.length <= Math.floor(W / 2)) center(name, { double: true, bold: true });
+  else center(name, { bold: true });
   if (s.businessAddress) center(s.businessAddress);
   if (s.businessPhone) center(`Tel: ${s.businessPhone}`);
   if (s.tinNumber) center(`TIN: ${s.tinNumber}`);
@@ -108,14 +102,27 @@ export function renderReceiptBlocks(
   pair("Payment", r.paymentMethod.toUpperCase());
   rule();
 
-  // Items — name with line total on the same line, qty x price indented below
+  // Items — 3 column table: Item | Qty | Cost, one row per item
   push("ITEMS", { bold: true });
-  blank();
+  const QTY_W = 4;
+  const costW = Math.max(
+    ...r.lines.map((l) => currency(l.qty * l.unit_price).length),
+    "Cost".length,
+  );
+  const nameW = Math.max(6, W - QTY_W - costW - 2);
+  const row = (n: string, q: string, c: string, extra: Partial<ReceiptBlock> = {}) => {
+    const lines = wrap(n, nameW);
+    push(
+      lines[0].padEnd(nameW) + " " + q.padStart(QTY_W) + " " + c.padStart(costW),
+      extra,
+    );
+    // Only the item name wraps — never the numeric columns.
+    for (const extraLine of lines.slice(1)) push("  " + extraLine, extra);
+  };
+  row("Item", "Qty", "Cost", { bold: true });
   for (const l of r.lines) {
-    pair(l.name, currency(l.qty * l.unit_price));
-    push(`  ${l.qty} x ${currency(l.unit_price)}`);
+    row(l.name, String(l.qty), currency(l.qty * l.unit_price));
   }
-  blank();
   rule();
 
   // Money block — every value right-aligned to the same column
@@ -126,10 +133,11 @@ export function renderReceiptBlocks(
     pair(`WHT (${((r.whtRate ?? 0) * 100).toFixed(0)}%)`, `-${currency(r.wht)}`);
   if (r.lst && r.lst > 0) pair("Local Service Tax", currency(r.lst));
   rule();
-  pair("TOTAL", currency(r.total), { double: true, bold: true });
+  pair("TOTAL", currency(r.total), { bold: true });
   if (typeof r.amountPaid === "number") pair("Amount Paid", currency(r.amountPaid), { bold: true });
   if (r.balanceDue && r.balanceDue > 0) pair("Balance Due", currency(r.balanceDue), { bold: true });
   rule();
+
 
   // Footer — centred
   blank();
