@@ -19,6 +19,8 @@ export interface ReceiptData {
   wht?: number;
   whtRate?: number;
   lst?: number;
+  fee?: number;
+  feeLabel?: string;
   total: number;
   amountPaid?: number;
   balanceDue?: number;

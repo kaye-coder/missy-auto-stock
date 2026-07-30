@@ -139,6 +139,7 @@ export function renderReceiptBlocks(
   if (r.wht && r.wht > 0)
     pair(`WHT (${((r.whtRate ?? 0) * 100).toFixed(0)}%)`, `-${currency(r.wht)}`);
   if (r.lst && r.lst > 0) pair("Local Service Tax", currency(r.lst));
+  if (r.fee && r.fee > 0) pair(r.feeLabel ?? "Fee", currency(r.fee));
   rule();
   pair("TOTAL", currency(r.total), { bold: true });
   if (typeof r.amountPaid === "number") pair("Amount Paid", currency(r.amountPaid), { bold: true });

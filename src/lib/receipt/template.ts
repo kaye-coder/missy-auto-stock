@@ -95,6 +95,7 @@ export function buildReceiptBody(r: ReceiptData, s: CheckoutSettings): string {
     <div class="row"><span class="k">${safe(r.taxLabel)} (${(r.taxRate * 100).toFixed(0)}%)</span><span class="v">${money(r.tax)}</span></div>
     ${r.wht && r.wht > 0 ? `<div class="row"><span class="k">WHT (${((r.whtRate ?? 0) * 100).toFixed(0)}%)</span><span class="v">-${money(r.wht)}</span></div>` : ""}
     ${r.lst && r.lst > 0 ? `<div class="row"><span class="k">Local Service Tax</span><span class="v">${money(r.lst)}</span></div>` : ""}
+    ${r.fee && r.fee > 0 ? `<div class="row"><span class="k">${safe(r.feeLabel ?? "Fee")}</span><span class="v">${money(r.fee)}</span></div>` : ""}
     <div class="rule solid"></div>
     <div class="grand"><span>TOTAL</span><span>${money(r.total)}</span></div>
     ${typeof r.amountPaid === "number" ? `<div class="row"><span class="k">Amount Paid</span><span class="v">${money(r.amountPaid)}</span></div>` : ""}
