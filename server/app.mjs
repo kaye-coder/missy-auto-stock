@@ -2,7 +2,7 @@ import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import * as auth from "./auth.mjs";
-import { createBackup, listBackups, restoreBackup, startBackupSchedule } from "./backup.mjs";
+import { createBackup, deleteBackup, listBackups, restoreBackup, startBackupSchedule } from "./backup.mjs";
 import { DB_PATH, UPLOAD_DIR, getDb, initDb, newId } from "./db.mjs";
 import { runDelete, runInsert, runRpc, runSelect, runUpdate } from "./rest.mjs";
 
@@ -144,6 +144,14 @@ async function handleApi(req, res, url) {
       send(res, 200, { data: await createBackup() });
       return true;
     }
+  }
+
+  if (path === "/api/backups/delete" && req.method === "POST") {
+    const body = await readBody(req);
+    const session = auth.sessionFromToken(db(), body.token);
+    if (!session || session.role !== "admin") throw new Error("Admin access required");
+    send(res, 200, { data: await deleteBackup(body.name) });
+    return true;
   }
 
   if (path === "/api/backups/restore" && req.method === "POST") {

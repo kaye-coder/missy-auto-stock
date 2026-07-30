@@ -218,6 +218,8 @@ export const backups = {
   create: (token: string) => call<BackupFile>("/api/backups", { token }),
   restore: (token: string, name: string) =>
     call<{ ok: boolean }>("/api/backups/restore", { token, name }),
+  remove: (token: string, name: string) =>
+    call<{ ok: boolean }>("/api/backups/delete", { token, name }),
 };
 
 export interface BackupFile {

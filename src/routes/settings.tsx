@@ -506,6 +506,24 @@ function BackupsCard() {
     }
   };
 
+  const runDelete = async (name: string) => {
+    if (!window.confirm(`Delete ${name}? This cannot be undone.`)) return;
+    setBusy(true);
+    try {
+      const token = getAuthToken();
+      if (!token) throw new Error("Please sign in again");
+      await backups.remove(token, name);
+      await refresh();
+      toast.success("Backup deleted");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const latest = files[0]?.name;
+
   return (
     <Card>
       <CardHeader>
@@ -514,7 +532,7 @@ function BackupsCard() {
         </CardTitle>
         <CardDescription>
           The database is backed up automatically every 7 days. You can also take a copy now
-          or roll back to an earlier one.
+          or roll back to an earlier one. The latest backup is protected from deletion.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -528,14 +546,33 @@ function BackupsCard() {
             {files.map((file) => (
               <div key={file.name} className="flex items-center justify-between gap-3 px-3 py-2">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{file.name}</p>
+                  <p className="flex items-center gap-2 truncate text-sm font-medium">
+                    <span className="truncate">{file.name}</span>
+                    {file.name === latest && (
+                      <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                        Latest backup
+                      </span>
+                    )}
+                  </p>
                   <p className="text-xs text-muted-foreground">
                     {new Date(file.createdAt).toLocaleString()} · {(file.size / 1024 / 1024).toFixed(2)} MB
                   </p>
                 </div>
-                <Button variant="outline" size="sm" disabled={busy} onClick={() => runRestore(file.name)}>
-                  <Upload className="mr-2 h-4 w-4" />Restore
-                </Button>
+                <div className="flex shrink-0 items-center gap-2">
+                  <Button variant="outline" size="sm" disabled={busy} onClick={() => runRestore(file.name)}>
+                    <Upload className="mr-2 h-4 w-4" />Restore
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive hover:text-destructive"
+                    disabled={busy || file.name === latest}
+                    title={file.name === latest ? "The latest backup can't be deleted" : "Delete backup"}
+                    onClick={() => runDelete(file.name)}
+                  >
+                    Delete
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
