@@ -407,30 +407,50 @@ function StatsPage() {
         description={rangeLabel}
       >
         {bucketedForChart.length === 0 ? <Empty /> : (
-          <ResponsiveContainer width="100%" height={320}>
-            {metric === "overall" ? (
-              <LineChart data={bucketedForChart}>
-                <CartesianGrid strokeDasharray="3 3" stroke={PINK_SOFT} strokeOpacity={0.5} />
-                <XAxis dataKey="label" fontSize={11} stroke={PINK_DEEP} />
-                <YAxis fontSize={11} stroke={PINK_DEEP} tickFormatter={(v) => (v / 1000).toFixed(0) + "k"} />
-                <RTooltip formatter={(v: number) => currency(v)} />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Line type="monotone" dataKey="revenue" stroke={PINK_PRIMARY} strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="profit" stroke={PINK_DEEP} strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="cost" stroke={PINK_SOFT} strokeWidth={2} dot={false} />
-              </LineChart>
-            ) : (
-              <BarChart data={bucketedForChart}>
-                <CartesianGrid strokeDasharray="3 3" stroke={PINK_SOFT} strokeOpacity={0.5} />
-                <XAxis dataKey="label" fontSize={11} stroke={PINK_DEEP} />
-                <YAxis fontSize={11} stroke={PINK_DEEP}
-                  tickFormatter={(v) => metric === "units" ? String(v) : (v / 1000).toFixed(0) + "k"} />
-                <RTooltip formatter={(v: number) => metric === "units" ? v.toLocaleString() : currency(v)} />
-                <Bar dataKey={metricInfo[metric].dataKey} fill={metricInfo[metric].color} radius={[6, 6, 0, 0]} />
-              </BarChart>
-            )}
-          </ResponsiveContainer>
+          <div className="rounded-xl bg-white p-2">
+            <ResponsiveContainer width="100%" height={340}>
+              {metric === "overall" && bucketedForChart.length > 1 ? (
+                <LineChart data={bucketedForChart} margin={{ top: 10, right: 16, bottom: 24, left: 8 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={PINK_SOFT} strokeOpacity={0.6} />
+                  <XAxis dataKey="label" fontSize={12} stroke={PINK_DEEP} tickMargin={8}
+                    label={{ value: groupLabel, position: "insideBottom", offset: -14, fill: PINK_DEEP, fontSize: 12 }} />
+                  <YAxis fontSize={12} stroke={PINK_DEEP} width={70}
+                    tickFormatter={(v: number) => (Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v))} />
+                  <RTooltip formatter={(v: number) => currency(v)} contentStyle={{ background: "#fff", border: `1px solid ${PINK_SOFT}` }} />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Line type="monotone" name="Revenue" dataKey="revenue" stroke={PINK_PRIMARY} strokeWidth={3} dot={{ r: 3, fill: PINK_PRIMARY }} activeDot={{ r: 5 }} />
+                  <Line type="monotone" name="Profit" dataKey="profit" stroke={PINK_DEEP} strokeWidth={2} dot={{ r: 3, fill: PINK_DEEP }} />
+                  <Line type="monotone" name="Cost" dataKey="cost" stroke={PINK_SOFT} strokeWidth={2} dot={{ r: 3, fill: PINK_SOFT }} />
+                </LineChart>
+              ) : (
+                <BarChart data={bucketedForChart} margin={{ top: 10, right: 16, bottom: 24, left: 8 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={PINK_SOFT} strokeOpacity={0.6} vertical={false} />
+                  <XAxis dataKey="label" fontSize={12} stroke={PINK_DEEP} tickMargin={8}
+                    label={{ value: groupLabel, position: "insideBottom", offset: -14, fill: PINK_DEEP, fontSize: 12 }} />
+                  <YAxis fontSize={12} stroke={PINK_DEEP} width={70}
+                    tickFormatter={(v: number) =>
+                      metric === "units" ? String(v) : Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
+                  <RTooltip
+                    formatter={(v: number) => (metric === "units" ? v.toLocaleString() : currency(v))}
+                    contentStyle={{ background: "#fff", border: `1px solid ${PINK_SOFT}` }}
+                    cursor={{ fill: "rgba(236,72,153,0.08)" }} />
+                  {metric === "overall" ? (
+                    <>
+                      <Legend wrapperStyle={{ fontSize: 12 }} />
+                      <Bar name="Revenue" dataKey="revenue" fill={PINK_PRIMARY} radius={[6, 6, 0, 0]} />
+                      <Bar name="Profit" dataKey="profit" fill={PINK_DEEP} radius={[6, 6, 0, 0]} />
+                      <Bar name="Cost" dataKey="cost" fill={PINK_SOFT} radius={[6, 6, 0, 0]} />
+                    </>
+                  ) : (
+                    <Bar name={metricInfo[metric].label} dataKey={metricInfo[metric].dataKey}
+                      fill={metricInfo[metric].color} radius={[6, 6, 0, 0]} />
+                  )}
+                </BarChart>
+              )}
+            </ResponsiveContainer>
+          </div>
         )}
+
       </ChartCard>
 
       {/* Overall view: breakdowns */}
