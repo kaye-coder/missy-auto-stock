@@ -298,5 +298,7 @@ export function applyDefaults(table, row) {
     next.purchase_date = new Date().toISOString().slice(0, 10);
   if (table === "expenses" && !next.expense_date)
     next.expense_date = new Date().toISOString().slice(0, 10);
+  if (table === "customer_payments" && !next.payment_number)
+    next.payment_number = `PMT-${stamp()}-${pad(Math.floor(Math.random() * 100000), 5)}`;
   return next;
 }
