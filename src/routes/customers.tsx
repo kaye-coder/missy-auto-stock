@@ -17,9 +17,10 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Wallet } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { ExportButtons } from "@/components/ExportButtons";
+import { CustomerAccountDialog } from "@/components/CustomerAccountDialog";
 import type { Customer } from "@/lib/db-types";
 
 export const Route = createFileRoute("/customers")({
@@ -37,6 +38,7 @@ function CustomersPage() {
   const [form, setForm] = useState<Form>(empty);
   const [confirmDel, setConfirmDel] = useState<Customer | null>(null);
   const [search, setSearch] = useState("");
+  const [accountFor, setAccountFor] = useState<Customer | null>(null);
 
   const { data: allCustomers = [] } = useQuery({
     queryKey: ["customers"],
@@ -177,15 +179,21 @@ function CustomersPage() {
                 <TableCell className="text-sm text-muted-foreground">{c.address ?? "—"}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
+                    <Button size="sm" variant="outline" onClick={() => setAccountFor(c)}>
+                      <Wallet className="h-4 w-4" /> Open Account
+                    </Button>
                     <Button size="icon" variant="ghost" onClick={() => startEdit(c)}><Pencil className="h-4 w-4" /></Button>
                     <Button size="icon" variant="ghost" className="text-destructive" onClick={() => setConfirmDel(c)}><Trash2 className="h-4 w-4" /></Button>
                   </div>
+
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
+
+      <CustomerAccountDialog customer={accountFor} onOpenChange={(o) => !o && setAccountFor(null)} />
 
       <AlertDialog open={!!confirmDel} onOpenChange={(o) => !o && setConfirmDel(null)}>
         <AlertDialogContent>

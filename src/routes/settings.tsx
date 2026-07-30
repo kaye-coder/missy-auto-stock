@@ -85,6 +85,7 @@ function SettingsPage() {
         "sale_items", "sales",
         "purchase_items", "purchases",
         "expenses",
+        "customer_payments",
         "products", "customers", "suppliers", "categories",
       ] as const;
       for (const name of tables) {

@@ -212,7 +212,62 @@ export function afterInsert(db, table, row) {
   if (table === "purchases") postPurchaseJournal(db, row);
   if (table === "purchase_items") adjustStock(db, row.product_id, row.quantity, row.unit_cost);
   if (table === "expenses") postExpenseJournal(db, row);
+  if (table === "customer_payments") {
+    applyCustomerPayment(db, row);
+    postCustomerPaymentJournal(db, row);
+  }
 }
+
+/** Applies a customer payment to their oldest unpaid credit sales. */
+function applyCustomerPayment(db, payment) {
+  let left = r2(payment.amount);
+  const sales = db
+    .prepare(
+      "SELECT * FROM sales WHERE customer_id = ? AND balance_due > 0 ORDER BY created_at ASC",
+    )
+    .all(payment.customer_id);
+  for (const sale of sales) {
+    if (left <= 0) break;
+    const applied = Math.min(left, r2(sale.balance_due));
+    db.prepare("UPDATE sales SET amount_paid = ?, balance_due = ?, status = ? WHERE id = ?").run(
+      r2(sale.amount_paid + applied),
+      r2(sale.balance_due - applied),
+      r2(sale.balance_due - applied) <= 0 ? "completed" : "partial",
+      sale.id,
+    );
+    left = r2(left - applied);
+  }
+}
+
+function postCustomerPaymentJournal(db, payment) {
+  const debitCode = ["bank", "card", "mobile", "mpesa", "transfer"].includes(
+    payment.payment_method,
+  )
+    ? "1010"
+    : "1000";
+  addEntry(db, {
+    date: String(payment.created_at).slice(0, 10),
+    reference: payment.payment_number,
+    memo: `Customer payment ${payment.payment_number}`,
+    sourceType: "customer_payment",
+    sourceId: payment.id,
+    lines: [
+      {
+        account: acct(db, debitCode),
+        debit: r2(payment.amount),
+        credit: 0,
+        description: "Payment received on account",
+      },
+      {
+        account: acct(db, "1100"),
+        debit: 0,
+        credit: r2(payment.amount),
+        description: "Accounts receivable settled",
+      },
+    ],
+  });
+}
+
 
 /** Runs before a row is deleted, mirroring the old BEFORE DELETE triggers + FK cascades. */
 export function beforeDelete(db, table, row) {
@@ -231,6 +286,7 @@ export function beforeDelete(db, table, row) {
   }
   if (table === "purchase_items") adjustStock(db, row.product_id, -row.quantity);
   if (table === "expenses") deleteJournalBySource(db, row.id);
+  if (table === "customer_payments") deleteJournalBySource(db, row.id);
 }
 
 /** Defaults the old Postgres column DEFAULTs used to supply. */
@@ -243,5 +299,7 @@ export function applyDefaults(table, row) {
     next.purchase_date = new Date().toISOString().slice(0, 10);
   if (table === "expenses" && !next.expense_date)
     next.expense_date = new Date().toISOString().slice(0, 10);
+  if (table === "customer_payments" && !next.payment_number)
+    next.payment_number = `PMT-${stamp()}-${pad(Math.floor(Math.random() * 100000), 5)}`;
   return next;
 }

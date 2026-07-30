@@ -6,6 +6,7 @@ const TABLES = new Set([
   "categories",
   "products",
   "customers",
+  "customer_payments",
   "suppliers",
   "sales",
   "sale_items",
