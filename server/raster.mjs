@@ -75,12 +75,21 @@ export async function pngToRaster(
   }
 
 
-  // 4. pack into GS v 0 raster payload
-  const bytesPerRow = w / 8;
+  // 4. centre the logo on the full print head so we don't rely on the printer
+  //    honouring ESC a 1 (centre) for graphics — many cheap heads do not.
+  const headW = 384; // 58mm = 384 dots
+  const fullW = Math.max(w, headW);
+  const offset = Math.max(0, Math.floor((fullW - w) / 2 / 8) * 8);
+  const canvas = new Uint8Array(fullW * h);
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) canvas[y * fullW + offset + x] = bits[y * w + x];
+
+  // 5a. GS v 0 raster payload
+  const bytesPerRow = fullW / 8;
   const data = Buffer.alloc(bytesPerRow * h, 0);
   for (let y = 0; y < h; y++)
-    for (let x = 0; x < w; x++)
-      if (bits[y * w + x]) data[y * bytesPerRow + (x >> 3)] |= 0x80 >> (x & 7);
+    for (let x = 0; x < fullW; x++)
+      if (canvas[y * fullW + x]) data[y * bytesPerRow + (x >> 3)] |= 0x80 >> (x & 7);
 
   const header = Buffer.from([
     0x1d,
@@ -92,5 +101,34 @@ export async function pngToRaster(
     h & 0xff,
     (h >> 8) & 0xff,
   ]);
-  return { buffer: Buffer.concat([header, data]), width: w, height: h };
+
+  // 5b. ESC * m=33 (24-dot double density) — the most widely supported bit
+  //     image command. Printers that silently ignore GS v 0 (and then dump the
+  //     payload through the text parser as garbage characters) handle this one.
+  const stripes = [];
+  stripes.push(Buffer.from([0x1b, 0x33, 0x18])); // ESC 3 24 -> line spacing = 24 dots
+  for (let top = 0; top < h; top += 24) {
+    const stripe = Buffer.alloc(3 * fullW);
+    for (let x = 0; x < fullW; x++) {
+      for (let k = 0; k < 24; k++) {
+        const y = top + k;
+        if (y >= h) continue;
+        if (canvas[y * fullW + x]) stripe[x * 3 + (k >> 3)] |= 0x80 >> (k & 7);
+      }
+    }
+    stripes.push(
+      Buffer.from([0x1b, 0x2a, 33, fullW & 0xff, (fullW >> 8) & 0xff]),
+      stripe,
+      Buffer.from([0x0a]),
+    );
+  }
+  stripes.push(Buffer.from([0x1b, 0x32])); // ESC 2 -> restore default line spacing
+
+  return {
+    buffer: Buffer.concat([header, data]),
+    escStar: Buffer.concat(stripes),
+    width: fullW,
+    height: h,
+  };
 }
+
