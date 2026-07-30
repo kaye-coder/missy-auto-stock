@@ -1,0 +1,88 @@
+import { readFile } from "node:fs/promises";
+import { PNG } from "pngjs";
+
+/**
+ * PNG -> ESC/POS raster bitmap (GS v 0).
+ *
+ * Thermal printers cannot interpret PNG/JPEG bytes. Sending anything but a
+ * packed 1-bit-per-pixel raster is what makes them spit out "?aC" noise: the
+ * bytes fall through to the text parser. So we decode the PNG ourselves,
+ * flatten alpha onto white, scale to the head's dot width, Floyd–Steinberg
+ * dither to pure black/white, then pack 8 pixels per byte.
+ */
+export async function pngToRaster(filePath, { targetWidth = 320, maxHeight = 240 } = {}) {
+  const png = PNG.sync.read(await readFile(filePath));
+
+  // 1. grayscale with alpha flattened onto white paper
+  const gray = new Float32Array(png.width * png.height);
+  for (let i = 0; i < png.width * png.height; i++) {
+    const o = i * 4;
+    const a = png.data[o + 3] / 255;
+    const r = png.data[o] * a + 255 * (1 - a);
+    const g = png.data[o + 1] * a + 255 * (1 - a);
+    const b = png.data[o + 2] * a + 255 * (1 - a);
+    gray[i] = 0.299 * r + 0.587 * g + 0.114 * b;
+  }
+
+  // 2. scale (box filter) to the printer dot grid; width must be a multiple of 8
+  let w = Math.min(targetWidth, 576);
+  w = Math.max(8, w - (w % 8));
+  let h = Math.max(1, Math.round((png.height / png.width) * w));
+  if (h > maxHeight) {
+    h = maxHeight;
+  }
+  const scaled = new Float32Array(w * h);
+  for (let y = 0; y < h; y++) {
+    const sy0 = Math.floor((y * png.height) / h);
+    const sy1 = Math.max(sy0 + 1, Math.floor(((y + 1) * png.height) / h));
+    for (let x = 0; x < w; x++) {
+      const sx0 = Math.floor((x * png.width) / w);
+      const sx1 = Math.max(sx0 + 1, Math.floor(((x + 1) * png.width) / w));
+      let sum = 0;
+      let n = 0;
+      for (let sy = sy0; sy < sy1; sy++)
+        for (let sx = sx0; sx < sx1; sx++) {
+          sum += gray[sy * png.width + sx];
+          n++;
+        }
+      scaled[y * w + x] = sum / n;
+    }
+  }
+
+  // 3. Floyd–Steinberg dithering to 1 bit
+  const bits = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = y * w + x;
+      const old = scaled[i];
+      const nv = old < 128 ? 0 : 255;
+      bits[i] = nv === 0 ? 1 : 0; // 1 = burn a dot
+      const err = old - nv;
+      if (x + 1 < w) scaled[i + 1] += (err * 7) / 16;
+      if (y + 1 < h) {
+        if (x > 0) scaled[i + w - 1] += (err * 3) / 16;
+        scaled[i + w] += (err * 5) / 16;
+        if (x + 1 < w) scaled[i + w + 1] += (err * 1) / 16;
+      }
+    }
+  }
+
+  // 4. pack into GS v 0 raster payload
+  const bytesPerRow = w / 8;
+  const data = Buffer.alloc(bytesPerRow * h, 0);
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++)
+      if (bits[y * w + x]) data[y * bytesPerRow + (x >> 3)] |= 0x80 >> (x & 7);
+
+  const header = Buffer.from([
+    0x1d,
+    0x76,
+    0x30,
+    0x00, // GS v 0, normal mode
+    bytesPerRow & 0xff,
+    (bytesPerRow >> 8) & 0xff,
+    h & 0xff,
+    (h >> 8) & 0xff,
+  ]);
+  return { buffer: Buffer.concat([header, data]), width: w, height: h };
+}
