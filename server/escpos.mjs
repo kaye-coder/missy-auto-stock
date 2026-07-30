@@ -86,14 +86,21 @@ export async function buildEscPos(blocks, { cut = true, logo = true } = {}) {
     try {
       const { fileURLToPath } = await import("node:url");
       const path = await import("node:path");
+      const { pngToRaster } = await import("./raster.mjs");
       const here = path.dirname(fileURLToPath(import.meta.url));
+      const logoPath = path.join(here, "..", "public", "missy-logo.png");
+      // 58mm heads are 384 dots wide; leave a small margin and centre the raster.
+      const { buffer } = await pngToRaster(logoPath, { targetWidth: 320, maxHeight: 200 });
       printer.alignCenter();
-      await printer.printImage(path.join(here, "..", "public", "missy-logo.png"));
+      printer.add(buffer); // appends to the job buffer; raw() would send early
+      printer.newLine();
       printer.alignLeft();
+
     } catch {
       /* logo is optional — never block a receipt on it */
     }
   }
+
 
   for (const block of blocks) {
     const text = cleanText(block.text);
