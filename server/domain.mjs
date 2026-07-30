@@ -286,6 +286,7 @@ export function beforeDelete(db, table, row) {
   }
   if (table === "purchase_items") adjustStock(db, row.product_id, -row.quantity);
   if (table === "expenses") deleteJournalBySource(db, row.id);
+  if (table === "customer_payments") deleteJournalBySource(db, row.id);
 }
 
 /** Defaults the old Postgres column DEFAULTs used to supply. */
