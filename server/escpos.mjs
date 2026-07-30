@@ -74,13 +74,26 @@ function createPrinter() {
 }
 
 /** Build one continuous ESC/POS byte stream for a 58mm receipt. */
-export function buildEscPos(blocks, { cut = true } = {}) {
+export async function buildEscPos(blocks, { cut = true, logo = true } = {}) {
   const printer = createPrinter();
 
   printer.clear();
   printer.initHardware();
   printer.setTypeFontA();
   printer.setLineSpacing(30);
+
+  if (logo) {
+    try {
+      const { fileURLToPath } = await import("node:url");
+      const path = await import("node:path");
+      const here = path.dirname(fileURLToPath(import.meta.url));
+      printer.alignCenter();
+      await printer.printImage(path.join(here, "..", "public", "missy-logo.png"));
+      printer.alignLeft();
+    } catch {
+      /* logo is optional — never block a receipt on it */
+    }
+  }
 
   for (const block of blocks) {
     const text = cleanText(block.text);
@@ -91,8 +104,9 @@ export function buildEscPos(blocks, { cut = true } = {}) {
     else printer.alignLeft();
 
     printer.bold(Boolean(block.bold || block.double));
-    if (block.double) printer.setTextSize(1, 1); // double height + width for business name/TOTAL
-    else if (text) printer.setTextSize(1, 0); // double height, normal width: readable 32-col 58mm text
+    // Only emphasised lines (business name, TOTAL) get double size; everything
+    // else stays single-width so label/value pairs fit on one line.
+    if (block.double) printer.setTextSize(1, 1);
     else printer.setTextSize(0, 0);
 
     printer.println(text);
@@ -112,7 +126,7 @@ export function buildEscPos(blocks, { cut = true } = {}) {
 export async function printRaw(blocks, printer) {
   const target = printer || (await defaultPrinter());
   if (!target) throw new Error("No CUPS printer found");
-  const payload = buildEscPos(blocks);
+  const payload = await buildEscPos(blocks);
   await run("lp", ["-d", target, "-o", "raw", "-t", "missy-receipt"], payload);
   return { printer: target, bytes: payload.length, mode: "escpos-raw", width: PRINTER_WIDTH_58MM };
 }
