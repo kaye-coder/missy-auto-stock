@@ -20,6 +20,7 @@ import { Plus, Minus, Trash2, Search, Receipt, ShoppingCart, Sparkles, ScanLine 
 import { currency } from "@/lib/format";
 import { PageHeader } from "@/components/PageHeader";
 import { loadSettings, bestAutoDiscount, type CheckoutSettings } from "@/lib/settings";
+import { MOBILE_MONEY_PROVIDERS, mobileMoneyFee, providerLabel, isMobileMoneyMethod } from "@/lib/mobile-money";
 import { loadPaperSize, printReceiptDocument, type ReceiptData } from "@/lib/receipt";
 import {
   AlertDialog,
@@ -170,7 +171,10 @@ function POSPage() {
   const tax = taxable * settings.taxRate;
   const wht = settings.withholdingEnabled ? taxable * settings.withholdingRate : 0;
   const lst = settings.localServiceTaxEnabled ? settings.localServiceTax : 0;
-  const total = Math.max(0, taxable + tax + lst - wht);
+  const baseTotal = Math.max(0, taxable + tax + lst - wht);
+  const mmProvider = isMobileMoneyMethod(payment) ? payment : null;
+  const mmFee = mmProvider ? mobileMoneyFee(baseTotal, settings.mobileMoney[mmProvider]) : 0;
+  const total = baseTotal + mmFee;
   const isCredit = payment === "credit";
   const defaultPaid = isCredit ? 0 : total;
   const effectivePaid = Math.min(
@@ -242,6 +246,8 @@ function POSPage() {
         wht,
         whtRate: settings.withholdingRate,
         lst,
+        fee: mmFee,
+        feeLabel: mmProvider ? `${providerLabel(mmProvider)} fee` : undefined,
         total,
         amountPaid: effectivePaid,
         balanceDue,
@@ -438,6 +444,12 @@ function POSPage() {
                   <span>{currency(lst)}</span>
                 </div>
               )}
+              {mmFee > 0 && mmProvider && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{providerLabel(mmProvider)} fee</span>
+                  <span>{currency(mmFee)}</span>
+                </div>
+              )}
               <Separator />
               <div className="flex justify-between text-base font-bold"><span>Total</span><span>{currency(total)}</span></div>
               <div className="flex items-center justify-between gap-2">
@@ -490,17 +502,50 @@ function POSPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={payment} onValueChange={setPayment}>
+              <Select
+                value={mmProvider ? "mobile_money" : payment}
+                onValueChange={(v) => {
+                  if (v === "mobile_money") {
+                    const first =
+                      MOBILE_MONEY_PROVIDERS.find((p) => settings.mobileMoney[p.key]?.enabled) ??
+                      MOBILE_MONEY_PROVIDERS[0];
+                    setPayment(first.key);
+                  } else setPayment(v);
+                }}
+              >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="cash">Cash</SelectItem>
                   <SelectItem value="card">Card</SelectItem>
-                  <SelectItem value="mpesa">M-Pesa</SelectItem>
+                  {settings.mobileMoneyEnabled && <SelectItem value="mobile_money">Mobile Money</SelectItem>}
                   <SelectItem value="transfer">Bank Transfer</SelectItem>
                   <SelectItem value="credit">Credit (on account)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
+            {settings.mobileMoneyEnabled && mmProvider && (
+              <div className="grid grid-cols-3 gap-2">
+                {MOBILE_MONEY_PROVIDERS.filter((p) => settings.mobileMoney[p.key]?.enabled).map((p) => {
+                  const cfg = settings.mobileMoney[p.key];
+                  const active = payment === p.key;
+                  return (
+                    <Button
+                      key={p.key}
+                      type="button"
+                      variant={active ? "default" : "outline"}
+                      className={active ? "h-auto flex-col py-2" : "h-auto flex-col border-pink-200 py-2 text-pink-700 hover:bg-pink-50"}
+                      onClick={() => setPayment(p.key)}
+                    >
+                      <span className="text-sm font-semibold">{p.short}</span>
+                      <span className="text-[10px] opacity-80">
+                        {cfg.feeKind === "percent" ? `${cfg.feeValue}% fee` : `${currency(cfg.feeValue)} fee`}
+                      </span>
+                    </Button>
+                  );
+                })}
+              </div>
+            )}
 
             <Button
               size="lg"

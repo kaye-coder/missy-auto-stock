@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MOBILE_MONEY_PROVIDERS } from "@/lib/mobile-money";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -228,6 +229,77 @@ function SettingsPage() {
           <p className="text-xs text-muted-foreground">
             When enabled, WHT is shown on the receipt and deducted from the total.
           </p>
+        </CardContent>
+      </Card>
+
+      <Card className="border-pink-200">
+        <CardHeader>
+          <CardTitle className="text-pink-700">Mobile Money</CardTitle>
+          <CardDescription>
+            Offer MTN, Airtel and Orange Money at checkout. Each provider's fee is added
+            to the sale total automatically when that provider is selected.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-2">
+            <input
+              id="mmToggle"
+              type="checkbox"
+              className="h-4 w-4 accent-pink-600"
+              checked={s.mobileMoneyEnabled}
+              onChange={(e) => update("mobileMoneyEnabled", e.target.checked)}
+            />
+            <Label htmlFor="mmToggle" className="cursor-pointer">Enable Mobile Money at checkout</Label>
+          </div>
+          <div className="space-y-3">
+            {MOBILE_MONEY_PROVIDERS.map((p) => {
+              const cfg = s.mobileMoney[p.key];
+              const setCfg = (patch: Partial<typeof cfg>) =>
+                update("mobileMoney", { ...s.mobileMoney, [p.key]: { ...cfg, ...patch } });
+              return (
+                <div
+                  key={p.key}
+                  className="grid items-end gap-3 rounded-lg border border-pink-100 bg-pink-50/40 p-3 sm:grid-cols-[auto_1fr_1fr]"
+                >
+                  <div className="flex items-center gap-2">
+                    <input
+                      id={`mm-${p.key}`}
+                      type="checkbox"
+                      className="h-4 w-4 accent-pink-600"
+                      disabled={!s.mobileMoneyEnabled}
+                      checked={cfg.enabled}
+                      onChange={(e) => setCfg({ enabled: e.target.checked })}
+                    />
+                    <Label htmlFor={`mm-${p.key}`} className="cursor-pointer whitespace-nowrap">{p.label}</Label>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Fee type</Label>
+                    <Select
+                      value={cfg.feeKind}
+                      onValueChange={(v) => setCfg({ feeKind: v as "percent" | "fixed" })}
+                    >
+                      <SelectTrigger disabled={!s.mobileMoneyEnabled || !cfg.enabled}><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="percent">Percentage (%)</SelectItem>
+                        <SelectItem value="fixed">Fixed amount (UGX)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">{cfg.feeKind === "percent" ? "Fee (%)" : "Fee (UGX)"}</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      disabled={!s.mobileMoneyEnabled || !cfg.enabled}
+                      value={cfg.feeValue}
+                      onChange={(e) => setCfg({ feeValue: Math.max(0, Number(e.target.value) || 0) })}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </CardContent>
       </Card>
 

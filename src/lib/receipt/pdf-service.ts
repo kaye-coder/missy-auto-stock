@@ -96,6 +96,7 @@ export function downloadReceiptPdf(r: ReceiptData, paper: PaperSize): void {
   pair(`${r.taxLabel} (${(r.taxRate * 100).toFixed(0)}%)`, currency(r.tax));
   if (r.wht && r.wht > 0) pair(`WHT (${((r.whtRate ?? 0) * 100).toFixed(0)}%)`, `-${currency(r.wht)}`);
   if (r.lst && r.lst > 0) pair("Local Service Tax", currency(r.lst));
+  if (r.fee && r.fee > 0) pair(r.feeLabel ?? "Fee", currency(r.fee));
   y += 1;
   line("solid");
   pair("TOTAL", currency(r.total), 11, true);

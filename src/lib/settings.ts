@@ -1,3 +1,5 @@
+import type { MobileMoneyProviderConfig, MobileMoneyProviderKey } from "./mobile-money";
+
 export type DiscountRule = {
   id: string;
   label: string;
@@ -23,6 +25,9 @@ export type CheckoutSettings = {
   tinNumber: string; // URA Taxpayer Identification Number
   efrisDeviceId: string; // optional EFRIS / e-invoicing device ID
   discountRules: DiscountRule[];
+  // Mobile money
+  mobileMoneyEnabled: boolean;
+  mobileMoney: Record<MobileMoneyProviderKey, MobileMoneyProviderConfig>;
 };
 
 const KEY = "missy.checkout-settings.v2";
@@ -43,6 +48,12 @@ export const DEFAULT_SETTINGS: CheckoutSettings = {
     { id: "r1", label: "Loyalty 5% over UGX 150,000", minSubtotal: 150_000, kind: "percent", value: 5 },
     { id: "r2", label: "Bulk 10% over UGX 500,000", minSubtotal: 500_000, kind: "percent", value: 10 },
   ],
+  mobileMoneyEnabled: true,
+  mobileMoney: {
+    mtn: { enabled: true, feeKind: "percent", feeValue: 1 },
+    airtel: { enabled: true, feeKind: "percent", feeValue: 1 },
+    orange: { enabled: true, feeKind: "percent", feeValue: 1 },
+  },
 };
 
 export function loadSettings(): CheckoutSettings {
@@ -50,7 +61,12 @@ export function loadSettings(): CheckoutSettings {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return DEFAULT_SETTINGS;
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) } as CheckoutSettings;
+    const parsed = JSON.parse(raw) as Partial<CheckoutSettings>;
+    return {
+      ...DEFAULT_SETTINGS,
+      ...parsed,
+      mobileMoney: { ...DEFAULT_SETTINGS.mobileMoney, ...(parsed.mobileMoney ?? {}) },
+    } as CheckoutSettings;
   } catch {
     return DEFAULT_SETTINGS;
   }
