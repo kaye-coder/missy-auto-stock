@@ -26,11 +26,10 @@ export async function pngToRaster(filePath, { targetWidth = 320, maxHeight = 240
 
   // 2. scale (box filter) to the printer dot grid; width must be a multiple of 8
   let w = Math.min(targetWidth, 576);
-  w = Math.max(8, w - (w % 8));
-  let h = Math.max(1, Math.round((png.height / png.width) * w));
-  if (h > maxHeight) {
-    h = maxHeight;
-  }
+  if ((png.height / png.width) * w > maxHeight) w = (maxHeight * png.width) / png.height;
+  w = Math.max(8, Math.round(w) - (Math.round(w) % 8));
+  const h = Math.max(1, Math.round((png.height / png.width) * w));
+
   const scaled = new Float32Array(w * h);
   for (let y = 0; y < h; y++) {
     const sy0 = Math.floor((y * png.height) / h);
