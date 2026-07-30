@@ -92,8 +92,10 @@ export async function buildEscPos(blocks, { cut = true, logo = true } = {}) {
       // 58mm heads are 384 dots wide; leave a small margin and centre the raster.
       const { buffer } = await pngToRaster(logoPath, { targetWidth: 320, maxHeight: 200 });
       printer.alignCenter();
-      printer.raw(buffer);
+      printer.add(buffer); // appends to the job buffer; raw() would send early
+      printer.newLine();
       printer.alignLeft();
+
     } catch {
       /* logo is optional — never block a receipt on it */
     }
