@@ -90,12 +90,21 @@ export async function buildEscPos(blocks, { cut = true, logo = true } = {}) {
       const here = path.dirname(fileURLToPath(import.meta.url));
       const logoPath = path.join(here, "..", "public", "missy-logo.png");
       // 58mm heads are 384 dots wide; the raster is centred on the full head.
-      const { escStar } = await pngToRaster(logoPath, { targetWidth: 320, maxHeight: 200 });
+      // Smaller + a high burn threshold keeps it a light line drawing rather
+      // than a solid black block.
+      const { escStar } = await pngToRaster(logoPath, {
+        targetWidth: 224,
+        maxHeight: 120,
+        threshold: 110,
+      });
       printer.alignLeft();
       // ESC * bit image: understood by every ESC/POS head. GS v 0 is skipped
       // because printers that lack it dump the payload as garbage characters.
+      printer.newLine();
       printer.add(escStar);
       printer.newLine();
+      printer.newLine();
+
     } catch {
       /* logo is optional — never block a receipt on it */
     }

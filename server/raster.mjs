@@ -12,7 +12,7 @@ import { PNG } from "pngjs";
  */
 export async function pngToRaster(
   filePath,
-  { targetWidth = 320, maxHeight = 240, threshold = 200, dither = false } = {},
+  { targetWidth = 320, maxHeight = 240, threshold = 110, dither = false } = {},
 ) {
   const png = PNG.sync.read(await readFile(filePath));
 
