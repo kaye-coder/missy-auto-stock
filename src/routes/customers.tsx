@@ -177,9 +177,13 @@ function CustomersPage() {
                 <TableCell className="text-sm text-muted-foreground">{c.address ?? "—"}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
+                    <Button size="sm" variant="outline" onClick={() => setAccountFor(c)}>
+                      <Wallet className="h-4 w-4" /> Open Account
+                    </Button>
                     <Button size="icon" variant="ghost" onClick={() => startEdit(c)}><Pencil className="h-4 w-4" /></Button>
                     <Button size="icon" variant="ghost" className="text-destructive" onClick={() => setConfirmDel(c)}><Trash2 className="h-4 w-4" /></Button>
                   </div>
+
                 </TableCell>
               </TableRow>
             ))}
