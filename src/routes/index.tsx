@@ -152,6 +152,16 @@ function Dashboard() {
     return [...map.entries()].sort((a, b) => b[1] - a[1]);
   }, [monthSales]);
 
+  // Mobile money collected per provider (this month)
+  const mobileMoneyTotals = useMemo(() => {
+    return MOBILE_MONEY_PROVIDERS.map((p) => ({
+      ...p,
+      total: monthSales
+        .filter((s) => s.payment_method === p.key)
+        .reduce((a, s) => a + Number(s.total), 0),
+    }));
+  }, [monthSales]);
+
   const stats = [
     {
       label: "Today",
@@ -272,6 +282,23 @@ function Dashboard() {
           </Card>
         ))}
       </div>
+
+      {/* Mobile money collections */}
+      <Card className="border-pink-200 bg-white">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-pink-700">
+            <Smartphone className="h-4 w-4" /> Mobile Money Collected (This Month)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-3">
+          {mobileMoneyTotals.map((m) => (
+            <div key={m.key} className="rounded-lg border border-pink-100 bg-pink-50/40 p-4">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">{m.short}</p>
+              <p className="mt-1 text-xl font-bold text-pink-700">{currency(m.total)}</p>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
 
       {/* Best seller spotlight + top selling list */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
