@@ -16,6 +16,7 @@ import {
   BookOpen,
   Scale,
   UserCog,
+  FileBarChart,
 } from "lucide-react";
 import missyLogo from "@/lib/logo";
 import {
@@ -38,6 +39,7 @@ const main: Item[] = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard, module: null },
   { title: "Point of Sale", url: "/pos", icon: ShoppingCart, module: "pos" },
   { title: "Statistics", url: "/statistics", icon: BarChart3, module: "statistics" },
+  { title: "Reports", url: "/reports", icon: FileBarChart, module: "statistics" },
 ];
 
 const manage: Item[] = [

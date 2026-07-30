@@ -14,6 +14,7 @@ import { Route as SuppliersRouteImport } from './routes/suppliers'
 import { Route as StatisticsRouteImport } from './routes/statistics'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SalesRouteImport } from './routes/sales'
+import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as ReconciliationRouteImport } from './routes/reconciliation'
 import { Route as ReceiptsRouteImport } from './routes/receipts'
 import { Route as PurchasesRouteImport } from './routes/purchases'
@@ -49,6 +50,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const SalesRoute = SalesRouteImport.update({
   id: '/sales',
   path: '/sales',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReconciliationRoute = ReconciliationRouteImport.update({
@@ -119,6 +125,7 @@ export interface FileRoutesByFullPath {
   '/purchases': typeof PurchasesRoute
   '/receipts': typeof ReceiptsRoute
   '/reconciliation': typeof ReconciliationRoute
+  '/reports': typeof ReportsRoute
   '/sales': typeof SalesRoute
   '/settings': typeof SettingsRoute
   '/statistics': typeof StatisticsRoute
@@ -137,6 +144,7 @@ export interface FileRoutesByTo {
   '/purchases': typeof PurchasesRoute
   '/receipts': typeof ReceiptsRoute
   '/reconciliation': typeof ReconciliationRoute
+  '/reports': typeof ReportsRoute
   '/sales': typeof SalesRoute
   '/settings': typeof SettingsRoute
   '/statistics': typeof StatisticsRoute
@@ -156,6 +164,7 @@ export interface FileRoutesById {
   '/purchases': typeof PurchasesRoute
   '/receipts': typeof ReceiptsRoute
   '/reconciliation': typeof ReconciliationRoute
+  '/reports': typeof ReportsRoute
   '/sales': typeof SalesRoute
   '/settings': typeof SettingsRoute
   '/statistics': typeof StatisticsRoute
@@ -176,6 +185,7 @@ export interface FileRouteTypes {
     | '/purchases'
     | '/receipts'
     | '/reconciliation'
+    | '/reports'
     | '/sales'
     | '/settings'
     | '/statistics'
@@ -194,6 +204,7 @@ export interface FileRouteTypes {
     | '/purchases'
     | '/receipts'
     | '/reconciliation'
+    | '/reports'
     | '/sales'
     | '/settings'
     | '/statistics'
@@ -212,6 +223,7 @@ export interface FileRouteTypes {
     | '/purchases'
     | '/receipts'
     | '/reconciliation'
+    | '/reports'
     | '/sales'
     | '/settings'
     | '/statistics'
@@ -231,6 +243,7 @@ export interface RootRouteChildren {
   PurchasesRoute: typeof PurchasesRoute
   ReceiptsRoute: typeof ReceiptsRoute
   ReconciliationRoute: typeof ReconciliationRoute
+  ReportsRoute: typeof ReportsRoute
   SalesRoute: typeof SalesRoute
   SettingsRoute: typeof SettingsRoute
   StatisticsRoute: typeof StatisticsRoute
@@ -273,6 +286,13 @@ declare module '@tanstack/react-router' {
       path: '/sales'
       fullPath: '/sales'
       preLoaderRoute: typeof SalesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reconciliation': {
@@ -367,6 +387,7 @@ const rootRouteChildren: RootRouteChildren = {
   PurchasesRoute: PurchasesRoute,
   ReceiptsRoute: ReceiptsRoute,
   ReconciliationRoute: ReconciliationRoute,
+  ReportsRoute: ReportsRoute,
   SalesRoute: SalesRoute,
   SettingsRoute: SettingsRoute,
   StatisticsRoute: StatisticsRoute,
@@ -376,3 +397,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
