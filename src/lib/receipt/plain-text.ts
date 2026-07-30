@@ -102,19 +102,24 @@ export function renderReceiptBlocks(
   pair("Payment", r.paymentMethod.toUpperCase());
   rule();
 
-  // Items — 3 column table: Item | Qty | Cost, one row per item (header row
-  // doubles as the section title, so no separate "ITEMS" line).
-  const QTY_W = 4;
-
-  const costW = Math.max(
-    ...r.lines.map((l) => currency(l.qty * l.unit_price).length),
-    "Cost".length,
-  );
-  const nameW = Math.max(6, W - QTY_W - costW - 2);
+  // Items — fixed 3 column grid: Item (left) | Qty (centre) | Cost (right).
+  // Widths are constant so header and every data row line up identically.
+  const QTY_W = paper === "58mm" ? 5 : 6;
+  const COST_W = paper === "58mm" ? 10 : 12;
+  const NAME_W = W - QTY_W - COST_W - 2; // 2 single-space gutters
+  const centrePad = (t: string, w: number) => {
+    const s2 = t.length > w ? t.slice(0, w) : t;
+    const left = Math.floor((w - s2.length) / 2);
+    return " ".repeat(left) + s2 + " ".repeat(w - s2.length - left);
+  };
   const row = (n: string, q: string, c: string, extra: Partial<ReceiptBlock> = {}) => {
-    const lines = wrap(n, nameW);
+    const lines = wrap(n, NAME_W);
     push(
-      lines[0].padEnd(nameW) + " " + q.padStart(QTY_W) + " " + c.padStart(costW),
+      lines[0].padEnd(NAME_W) +
+        " " +
+        centrePad(q, QTY_W) +
+        " " +
+        c.slice(-COST_W).padStart(COST_W),
       extra,
     );
     // Only the item name wraps — never the numeric columns.
@@ -124,6 +129,7 @@ export function renderReceiptBlocks(
   for (const l of r.lines) {
     row(l.name, String(l.qty), currency(l.qty * l.unit_price));
   }
+
   rule();
 
   // Money block — every value right-aligned to the same column
