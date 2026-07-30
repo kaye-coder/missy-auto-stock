@@ -18,7 +18,9 @@ import {
   Wallet,
   Flame,
   XCircle,
+  Smartphone,
 } from "lucide-react";
+import { MOBILE_MONEY_PROVIDERS } from "@/lib/mobile-money";
 import { currency, dateTime } from "@/lib/format";
 import { PageHeader } from "@/components/PageHeader";
 import type { Product, Sale, SaleItem, Customer } from "@/lib/db-types";
