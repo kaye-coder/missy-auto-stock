@@ -33,6 +33,16 @@ function prune() {
   for (const old of auto.slice(KEEP)) unlinkSync(join(BACKUP_DIR, old.name));
 }
 
+export async function deleteBackup(name) {
+  if (!/^[a-z0-9._-]+\.db$/i.test(name)) throw new Error("Invalid backup name");
+  const all = listBackups();
+  const target = all.find((b) => b.name === name);
+  if (!target) throw new Error("That backup no longer exists");
+  if (all[0]?.name === name) throw new Error("The latest backup cannot be deleted");
+  unlinkSync(join(BACKUP_DIR, name));
+  return { ok: true, deleted: name };
+}
+
 export async function restoreBackup(name) {
   if (!/^[a-z0-9._-]+\.db$/i.test(name)) throw new Error("Invalid backup name");
   const source = join(BACKUP_DIR, name);
