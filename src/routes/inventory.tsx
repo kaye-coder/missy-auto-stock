@@ -21,7 +21,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Search, Bell, Check, AlertTriangle, Upload, X, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Bell, Check, AlertTriangle, Upload, X, Loader2, Camera } from "lucide-react";
 import { currency } from "@/lib/format";
 import { PageHeader } from "@/components/PageHeader";
 import { ExportButtons } from "@/components/ExportButtons";
@@ -387,36 +387,70 @@ function InventoryPage() {
   );
 }
 
+/** Downscale + convert any decodable image to JPEG so uploads stay small and portable. */
+async function compressImage(file: File): Promise<{ blob: Blob; ext: string }> {
+  try {
+    const bitmap = await createImageBitmap(file);
+    const max = 1200;
+    const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
+    const w = Math.round(bitmap.width * scale);
+    const h = Math.round(bitmap.height * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("no canvas");
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    bitmap.close?.();
+    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/jpeg", 0.85));
+    if (!blob) throw new Error("encode failed");
+    return { blob, ext: "jpg" };
+  } catch {
+    // Formats the browser cannot decode (HEIC, TIFF...) are uploaded as-is.
+    return { blob: file, ext: file.name.split(".").pop()?.toLowerCase() || "img" };
+  }
+}
+
 function ImageUploader({ value, onChange }: { value: string; onChange: (url: string) => void }) {
   const [uploading, setUploading] = useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const cameraRef = React.useRef<HTMLInputElement>(null);
 
   const handleFile = async (file: File) => {
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please pick an image file");
-      return;
-    }
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop() || "jpg";
+      const { blob, ext } = await compressImage(file);
       const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      const { error } = await supabase.storage.from("product-images").upload(path, file, {
-        cacheControl: "31536000",
-        upsert: false,
-      });
-      if (error) throw error;
-      const { data, error: signErr } = await supabase.storage
+      const upload = new File([blob], path, { type: blob.type || file.type || "application/octet-stream" });
+      const { data: saved, error } = await supabase.storage
         .from("product-images")
-        .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
-      if (signErr) throw signErr;
-      onChange(data.signedUrl);
-      toast.success("Image uploaded");
+        .upload(path, upload, { cacheControl: "31536000", upsert: false });
+      if (error) throw error;
+
+      const storedPath = (saved as { path?: string; url?: string } | null)?.path ?? path;
+      const directUrl = (saved as { url?: string } | null)?.url;
+      if (directUrl) {
+        onChange(directUrl);
+      } else {
+        const { data, error: signErr } = await supabase.storage
+          .from("product-images")
+          .createSignedUrl(storedPath, 60 * 60 * 24 * 365 * 10);
+        if (signErr) throw signErr;
+        onChange(data.signedUrl);
+      }
+      toast.success("Image added");
     } catch (e) {
-      toast.error((e as Error).message);
+      toast.error((e as Error).message || "Could not add the image");
     } finally {
       setUploading(false);
     }
+  };
+
+  const pick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) handleFile(f);
+    e.target.value = "";
   };
 
   return (
@@ -426,21 +460,15 @@ function ImageUploader({ value, onChange }: { value: string; onChange: (url: str
       ) : (
         <div className="h-20 w-20 rounded-md bg-muted flex items-center justify-center text-xs text-muted-foreground">No image</div>
       )}
-      <div className="flex gap-2">
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) handleFile(f);
-            e.target.value = "";
-          }}
-        />
+      <div className="flex flex-wrap gap-2">
+        <input ref={inputRef} type="file" accept="image/*,.heic,.heif,.webp,.avif,.tif,.tiff" className="hidden" onChange={pick} />
+        <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={pick} />
         <Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()} disabled={uploading}>
           {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
           {uploading ? "Uploading..." : value ? "Replace" : "Upload"}
+        </Button>
+        <Button type="button" variant="outline" size="sm" onClick={() => cameraRef.current?.click()} disabled={uploading}>
+          <Camera className="h-4 w-4" /> Take photo
         </Button>
         {value && (
           <Button type="button" variant="ghost" size="sm" onClick={() => onChange("")}>
@@ -451,6 +479,7 @@ function ImageUploader({ value, onChange }: { value: string; onChange: (url: str
     </div>
   );
 }
+
 
 function ThresholdEditor({
   value,
