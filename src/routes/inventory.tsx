@@ -21,7 +21,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Search, Bell, Check, AlertTriangle, Upload, X, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Bell, Check, AlertTriangle, Upload, X, Loader2, Camera } from "lucide-react";
 import { currency } from "@/lib/format";
 import { PageHeader } from "@/components/PageHeader";
 import { ExportButtons } from "@/components/ExportButtons";
