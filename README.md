@@ -117,10 +117,11 @@ All data lives in a single file: `data/missy.db`. Backups are copies of that fil
 stored in the chosen backup folder, or `data/backups/` before one-click setup.
 
 **Automatic backups** — the app creates a backup automatically every 7 days while
-The ten newest automatic/manual `missy-` snapshots are kept in the selected folder.
+running, and on signed-in app startup. The ten newest automatic/manual `missy-`
+snapshots are kept in the selected folder.
 
 **Backup Now (manual)** — go to **Manage → Settings → Backups** and click
-**Backup Now**. A timestamped snapshot is written to `data/backups/` immediately.
+**Backup Now**. A timestamped snapshot is written to the selected backup folder immediately.
 Do this before any risky change or before updating the app.
 
 **Restore** — in the same **Backups** card, pick a backup from the list and click
@@ -128,7 +129,7 @@ Do this before any risky change or before updating the app.
 takes a safety copy of the current state first. Refresh the browser afterwards.
 
 **Off-machine copies** — periodically copy the whole `data/` folder to an external
-drive or another computer. That folder is the complete business data.
+drive or another computer. Also copy `uploads/` for product photos and your chosen backup folder.
 
 ---
 
@@ -151,6 +152,9 @@ npm install
 # 3. Start again
 npm start
 ```
+
+For the Desktop shortcut instead of development mode, replace step 3 with
+`npm run prepare:offline`, then open **Missy.command** after stopping the old server.
 
 Your `data/` folder is never touched by updates — products, sales and users are
 preserved. If `git pull` reports local changes, keep your data folder and reset
