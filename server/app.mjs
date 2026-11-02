@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import * as auth from "./auth.mjs";
 import { createBackup, deleteBackup, listBackups, restoreBackup, startBackupSchedule } from "./backup.mjs";
-import { DB_PATH, UPLOAD_DIR, getDb, initDb, newId } from "./db.mjs";
+import { DB_PATH, ROOT, UPLOAD_DIR, getDb, initDb, newId } from "./db.mjs";
 import { runDelete, runInsert, runRpc, runSelect, runUpdate } from "./rest.mjs";
 
 await initDb();
@@ -81,7 +81,7 @@ async function handleApi(req, res, url) {
   }
 
   if (path === "/api/health") {
-    send(res, 200, { ok: true, database: DB_PATH });
+    send(res, 200, { ok: true, app: "missy", root: ROOT, database: DB_PATH });
     return true;
   }
 

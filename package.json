@@ -11,7 +11,10 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "start": "vite dev --host 0.0.0.0 --port 8080",
-    "migrate:postgres": "node scripts/migrate-postgres-to-sqlite.mjs"
+    "migrate:postgres": "node scripts/migrate-postgres-to-sqlite.mjs",
+    "prepare:offline": "vite build --config vite.offline.config.ts && node scripts/compress-offline.mjs",
+    "start:offline": "node server/index.mjs",
+    "test:offline": "node --test server/offline.test.mjs server/performance.test.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

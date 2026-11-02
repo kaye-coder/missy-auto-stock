@@ -2,6 +2,7 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { backupDirectory } from "./local-config.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const ROOT = resolve(here, "..");
@@ -9,7 +10,7 @@ export const DATA_DIR = process.env.MISSY_DATA_DIR
   ? resolve(process.env.MISSY_DATA_DIR)
   : join(ROOT, "data");
 export const DB_PATH = join(DATA_DIR, "missy.db");
-export const BACKUP_DIR = join(DATA_DIR, "backups");
+export const BACKUP_DIR = backupDirectory(DATA_DIR, process.env.MISSY_BACKUP_DIR);
 export const UPLOAD_DIR = join(ROOT, "uploads", "product-images");
 
 for (const dir of [DATA_DIR, BACKUP_DIR, UPLOAD_DIR]) {
