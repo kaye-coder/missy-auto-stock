@@ -20,6 +20,8 @@ export const Route = createFileRoute("/reports")({
       { name: "description", content: "Sales, payment method, top item and customer credit reports for any date range." },
       { property: "og:title", content: "Reports — Missy" },
       { property: "og:description", content: "Sales, payment method, top item and customer credit reports for any date range." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: ReportsPage,

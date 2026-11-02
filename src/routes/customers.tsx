@@ -24,7 +24,14 @@ import { CustomerAccountDialog } from "@/components/CustomerAccountDialog";
 import type { Customer } from "@/lib/db-types";
 
 export const Route = createFileRoute("/customers")({
-  head: () => ({ meta: [{ title: "Customers — Missy" }] }),
+  head: () => ({ meta: [
+    { title: "Customers — Missy" },
+    { name: "description", content: "Manage customers in the Missy offline shop console." },
+    { property: "og:title", content: "Customers — Missy" },
+    { property: "og:description", content: "Manage customers in the Missy offline shop console." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: CustomersPage,
 });
 

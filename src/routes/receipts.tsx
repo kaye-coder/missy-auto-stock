@@ -22,6 +22,8 @@ export const Route = createFileRoute("/receipts")({
       { name: "description", content: "Browse, view and reprint every receipt issued by the shop." },
       { property: "og:title", content: "Receipts — Missy" },
       { property: "og:description", content: "Browse, view and reprint every receipt issued by the shop." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: ReceiptsPage,

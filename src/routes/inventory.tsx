@@ -28,7 +28,14 @@ import { ExportButtons } from "@/components/ExportButtons";
 import type { Product, Category } from "@/lib/db-types";
 
 export const Route = createFileRoute("/inventory")({
-  head: () => ({ meta: [{ title: "Inventory — Missy" }] }),
+  head: () => ({ meta: [
+    { title: "Inventory — Missy" },
+    { name: "description", content: "Manage inventory in the Missy offline shop console." },
+    { property: "og:title", content: "Inventory — Missy" },
+    { property: "og:description", content: "Manage inventory in the Missy offline shop console." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: InventoryPage,
 });
 

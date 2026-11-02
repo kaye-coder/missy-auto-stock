@@ -10,7 +10,14 @@ import missyLogo from "@/lib/logo";
 import { getSession, login } from "@/lib/auth";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "Sign in — Missy" }] }),
+  head: () => ({ meta: [
+    { title: "Sign in — Missy" },
+    { name: "description", content: "Sign in to the Missy offline shop console." },
+    { property: "og:title", content: "Sign in — Missy" },
+    { property: "og:description", content: "Sign in to the Missy offline shop console." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: LoginPage,
 });
 

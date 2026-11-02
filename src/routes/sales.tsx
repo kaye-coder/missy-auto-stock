@@ -19,7 +19,14 @@ import { ExportButtons } from "@/components/ExportButtons";
 import type { Sale, SaleItem, Customer } from "@/lib/db-types";
 
 export const Route = createFileRoute("/sales")({
-  head: () => ({ meta: [{ title: "Sales History — Missy" }] }),
+  head: () => ({ meta: [
+    { title: "Sales History — Missy" },
+    { name: "description", content: "Manage sales in the Missy offline shop console." },
+    { property: "og:title", content: "Sales History — Missy" },
+    { property: "og:description", content: "Manage sales in the Missy offline shop console." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: SalesPage,
 });
 

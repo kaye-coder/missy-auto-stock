@@ -24,7 +24,14 @@ import {
 } from "@/lib/auth";
 
 export const Route = createFileRoute("/users")({
-  head: () => ({ meta: [{ title: "Users — Missy" }] }),
+  head: () => ({ meta: [
+    { title: "Users — Missy" },
+    { name: "description", content: "Manage users in the Missy offline shop console." },
+    { property: "og:title", content: "Users — Missy" },
+    { property: "og:description", content: "Manage users in the Missy offline shop console." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: UsersPage,
 });
 
