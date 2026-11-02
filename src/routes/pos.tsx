@@ -37,7 +37,14 @@ import { getSession } from "@/lib/auth";
 import type { Product, Category, Customer } from "@/lib/db-types";
 
 export const Route = createFileRoute("/pos")({
-  head: () => ({ meta: [{ title: "Point of Sale — Missy" }] }),
+  head: () => ({ meta: [
+    { title: "Point of Sale — Missy" },
+    { name: "description", content: "Record shop sales and print Missy receipts." },
+    { property: "og:title", content: "Point of Sale — Missy" },
+    { property: "og:description", content: "Record shop sales and print Missy receipts." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: POSPage,
 });
 

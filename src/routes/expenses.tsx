@@ -27,7 +27,14 @@ import type { Expense, Account, Supplier } from "@/lib/db-types";
 import { currency } from "@/lib/format";
 
 export const Route = createFileRoute("/expenses")({
-  head: () => ({ meta: [{ title: "Expenses — Missy" }] }),
+  head: () => ({ meta: [
+    { title: "Expenses — Missy" },
+    { name: "description", content: "Manage expenses in the Missy offline shop console." },
+    { property: "og:title", content: "Expenses — Missy" },
+    { property: "og:description", content: "Manage expenses in the Missy offline shop console." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: ExpensesPage,
 });
 

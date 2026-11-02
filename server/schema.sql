@@ -196,3 +196,12 @@ CREATE TABLE IF NOT EXISTS customer_payments (
 );
 
 CREATE INDEX IF NOT EXISTS idx_customer_payments_customer ON customer_payments(customer_id);
+
+-- Additive indexes only: existing records and transaction behavior are unchanged.
+CREATE INDEX IF NOT EXISTS idx_sales_created ON sales(created_at);
+CREATE INDEX IF NOT EXISTS idx_sales_customer_created ON sales(customer_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_products_name ON products(name);
+CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);
+CREATE INDEX IF NOT EXISTS idx_purchases_date ON purchases(purchase_date);
+CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(expense_date);
+CREATE INDEX IF NOT EXISTS idx_journal_entries_date ON journal_entries(entry_date);

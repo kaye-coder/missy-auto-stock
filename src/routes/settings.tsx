@@ -23,7 +23,14 @@ import {
 } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/settings")({
-  head: () => ({ meta: [{ title: "Settings — Missy" }] }),
+  head: () => ({ meta: [
+    { title: "Settings — Missy" },
+    { name: "description", content: "Manage Missy checkout settings and database backups." },
+    { property: "og:title", content: "Settings — Missy" },
+    { property: "og:description", content: "Manage Missy checkout settings and database backups." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: SettingsPage,
 });
 

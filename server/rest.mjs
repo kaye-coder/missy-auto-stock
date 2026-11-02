@@ -135,17 +135,19 @@ function parseEmbeds(table, select) {
 function attachEmbeds(db, table, rows, select) {
   const embeds = parseEmbeds(table, select);
   if (embeds.length === 0) return rows;
+  const prepared = embeds.map((embed) => ({
+    ...embed,
+    statement: db.prepare(embed.relation.kind === "children"
+      ? `SELECT * FROM ${embed.relation.table} WHERE ${embed.relation.fk} = ?`
+      : `SELECT * FROM ${embed.relation.table} WHERE id = ?`),
+  }));
   for (const row of rows) {
-    for (const { alias, relation } of embeds) {
+    for (const { alias, relation, statement } of prepared) {
       if (relation.kind === "children") {
-        row[alias] = db
-          .prepare(`SELECT * FROM ${relation.table} WHERE ${relation.fk} = ?`)
-          .all(row.id)
+        row[alias] = statement.all(row.id)
           .map((child) => fromSqlRow(relation.table, child));
       } else {
-        const parent = db
-          .prepare(`SELECT * FROM ${relation.table} WHERE id = ?`)
-          .get(row[relation.fk]);
+        const parent = statement.get(row[relation.fk]);
         row[alias] = parent ? fromSqlRow(relation.table, parent) : null;
       }
     }

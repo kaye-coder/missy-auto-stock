@@ -21,7 +21,14 @@ import { ExportButtons } from "@/components/ExportButtons";
 import type { Category, Product } from "@/lib/db-types";
 
 export const Route = createFileRoute("/categories")({
-  head: () => ({ meta: [{ title: "Categories — Missy" }] }),
+  head: () => ({ meta: [
+    { title: "Categories — Missy" },
+    { name: "description", content: "Manage categories in the Missy offline shop console." },
+    { property: "og:title", content: "Categories — Missy" },
+    { property: "og:description", content: "Manage categories in the Missy offline shop console." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: CategoriesPage,
 });
 

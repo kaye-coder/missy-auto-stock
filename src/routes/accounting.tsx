@@ -25,7 +25,14 @@ import type { Account, AccountType, JournalEntry, JournalLine } from "@/lib/db-t
 import { currency } from "@/lib/format";
 
 export const Route = createFileRoute("/accounting")({
-  head: () => ({ meta: [{ title: "Accounting — Missy" }] }),
+  head: () => ({ meta: [
+    { title: "Accounting — Missy" },
+    { name: "description", content: "Manage accounting in the Missy offline shop console." },
+    { property: "og:title", content: "Accounting — Missy" },
+    { property: "og:description", content: "Manage accounting in the Missy offline shop console." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: AccountingPage,
 });
 

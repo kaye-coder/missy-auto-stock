@@ -1,11 +1,11 @@
 import { copyFileSync, existsSync, readdirSync, statSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
-import { BACKUP_DIR, DB_PATH, getDb, reopenDb } from "./db.mjs";
+import { BACKUP_DIR, DB_PATH, getDb, reopenDb, newId } from "./db.mjs";
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const KEEP = 10;
 
-const timestamp = () => new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+const timestamp = () => `${new Date().toISOString().replace(/[:.]/g, "-")}-${newId().slice(0, 8)}`;
 
 export function listBackups() {
   if (!existsSync(BACKUP_DIR)) return [];
@@ -18,7 +18,7 @@ export function listBackups() {
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-/** Uses SQLite's online backup API, so it is safe while the shop is using the app. */
+/** Consistent SQLite snapshot. VACUUM INTO is synchronous and may pause large stores. */
 export async function createBackup(prefix = "missy") {
   const db = getDb();
   const name = `${prefix}-${timestamp()}.db`;

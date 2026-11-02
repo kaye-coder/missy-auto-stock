@@ -23,7 +23,14 @@ import { ExportButtons } from "@/components/ExportButtons";
 import type { Supplier } from "@/lib/db-types";
 
 export const Route = createFileRoute("/suppliers")({
-  head: () => ({ meta: [{ title: "Suppliers — Missy" }] }),
+  head: () => ({ meta: [
+    { title: "Suppliers — Missy" },
+    { name: "description", content: "Manage suppliers in the Missy offline shop console." },
+    { property: "og:title", content: "Suppliers — Missy" },
+    { property: "og:description", content: "Manage suppliers in the Missy offline shop console." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: SuppliersPage,
 });
 

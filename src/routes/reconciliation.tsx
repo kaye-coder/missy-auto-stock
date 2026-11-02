@@ -21,7 +21,14 @@ import type { Account, JournalEntry, JournalLine } from "@/lib/db-types";
 import { currency } from "@/lib/format";
 
 export const Route = createFileRoute("/reconciliation")({
-  head: () => ({ meta: [{ title: "Reconciliation — Missy" }] }),
+  head: () => ({ meta: [
+    { title: "Reconciliation — Missy" },
+    { name: "description", content: "Manage reconciliation in the Missy offline shop console." },
+    { property: "og:title", content: "Reconciliation — Missy" },
+    { property: "og:description", content: "Manage reconciliation in the Missy offline shop console." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: ReconciliationPage,
 });
 

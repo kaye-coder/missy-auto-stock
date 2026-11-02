@@ -18,7 +18,14 @@ import { TrendingUp, TrendingDown, DollarSign, Percent, PackageMinus, BarChart3 
 import type { Product, Sale, SaleItem, Category } from "@/lib/db-types";
 
 export const Route = createFileRoute("/statistics")({
-  head: () => ({ meta: [{ title: "Statistics — Missy" }] }),
+  head: () => ({ meta: [
+    { title: "Statistics — Missy" },
+    { name: "description", content: "Manage statistics in the Missy offline shop console." },
+    { property: "og:title", content: "Statistics — Missy" },
+    { property: "og:description", content: "Manage statistics in the Missy offline shop console." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: StatsPage,
 });
 

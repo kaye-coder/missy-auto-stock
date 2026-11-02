@@ -27,7 +27,14 @@ import type { Purchase, PurchaseItem, Supplier, Product } from "@/lib/db-types";
 import { currency } from "@/lib/format";
 
 export const Route = createFileRoute("/purchases")({
-  head: () => ({ meta: [{ title: "Purchases — Missy" }] }),
+  head: () => ({ meta: [
+    { title: "Purchases — Missy" },
+    { name: "description", content: "Manage purchases in the Missy offline shop console." },
+    { property: "og:title", content: "Purchases — Missy" },
+    { property: "og:description", content: "Manage purchases in the Missy offline shop console." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: PurchasesPage,
 });
 
