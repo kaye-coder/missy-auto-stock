@@ -34,6 +34,9 @@ export default defineConfig({
   },
   vite: {
     plugins: [offlineApiPlugin()],
-    server: { host: "0.0.0.0" },
+    server: {
+      host: "0.0.0.0",
+      watch: { ignored: ["**/data/**", "**/*.db", "**/*.db-wal", "**/*.db-shm", "**/dist-offline/**"] },
+    },
   },
 });

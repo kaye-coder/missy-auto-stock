@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync, symlinkSync, lstatSync, realpathSync, openSync, closeSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync, renameSync, symlinkSync, lstatSync, realpathSync, openSync, closeSync, unlinkSync } from "node:fs";
 import { dirname, resolve, join, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
@@ -35,7 +35,7 @@ function setup() {
   const probe = join(backupDirectory, `.missy-write-check-${process.pid}`);
   writeFileSync(probe, "");
   // No existing database, images, settings or backups are moved or replaced.
-  const { unlinkSync } = spawnSync; // unused; probe removed below using filesystem import
+  unlinkSync(probe);
   writeFileSync(configFile + ".tmp", JSON.stringify({ backupDirectory }, null, 2), { mode: 0o600 });
   renameSync(configFile + ".tmp", configFile);
 }
