@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync, writeFileSync, existsSync, copyFileSync } from "node:fs";
 import { resolve, extname } from "node:path";
 import { brotliCompressSync, gzipSync, constants } from "node:zlib";
 
@@ -14,5 +14,9 @@ function compress(dir) {
     }
   }
 }
-compress(resolve("dist-offline/client"));
+const client = resolve("dist-offline/client");
+const shell = ["_shell.html", "_shell/index.html", "index.html"].map((p) => resolve(client, p)).find(existsSync);
+if (!shell) throw new Error("The offline build did not produce an app shell.");
+if (shell !== resolve(client, "index.html")) copyFileSync(shell, resolve(client, "index.html"));
+compress(client);
 console.log("Offline text assets compressed; photos and business data left untouched.");

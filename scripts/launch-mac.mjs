@@ -75,6 +75,9 @@ async function launch() {
   if (existing && (existing.app !== "missy" || existing.root !== root || existing.database !== join(dataDir, "missy.db"))) {
     throw new Error(`Port ${port} belongs to another app or Missy folder. Stop that server first; no data has been changed.`);
   }
+  if (existing?.ok && !existsSync(configFile)) {
+    throw new Error("Stop the currently running Missy server once, then open Start Missy.command to choose your backup folder.");
+  }
   setup();
   desktopShortcut();
   if (existing?.ok) { spawnSync("open", [url]); return; }
