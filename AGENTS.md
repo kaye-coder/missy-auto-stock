@@ -13,3 +13,4 @@
 - Build the offline SPA with vite.offline.config.ts into dist-offline/client and serve precompressed assets with server/index.mjs; daily Mac launch must not compile the application.
 - Store launcher-only preferences in the existing data directory and configure backups separately; updates must not move or replace the live SQLite file or product uploads.
 - Keep read optimizations request-local and preserve mutation and SSE semantics; cached results or changed invalidation policies would risk stale shop data.
+- Package Mac distribution as an unsigned flat .pkg containing a local setup .app; exclude credentials, client records and photos, and require explicit existing-folder selection before updates so installation never silently starts a different shop database.

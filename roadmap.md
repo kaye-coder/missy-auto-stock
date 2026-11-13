@@ -1,5 +1,8 @@
 # Offline Mac launch and speed
 
+- [x] Package a single native Mac installer using the tagged project as reference, without including client data.
+- [x] Test installer contents and safe existing-install handling; provide the downloadable installer and Mac security caveat.
+
 - [x] Review reference launch approach.
 - [x] Add prebuilt offline serving and one-click Mac launcher with desktop shortcut.
 - [x] Ask for and persist backup folder on first launch without relocating existing data.
